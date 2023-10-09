@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
+use gloo_console::log;
 use serde::{Deserialize, Serialize};
 
 pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
@@ -18,7 +19,6 @@ pub struct PokemonEntry {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PokemonSpecies {
     name: String,
-    url: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -33,6 +33,7 @@ pub struct Pokemon {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PokemonReference {
+    url: String,
     name: String,
 }
 
@@ -41,8 +42,9 @@ fn main() {
 }
 
 pub fn App(cx: Scope) -> Element {
+    use_shared_state_provider(cx, || FocusState::Unset);
     let dex = use_state(cx, || "paldea".to_string());
-    let pokemon_type = use_state(cx, || "normal".to_string());
+    let pokemon_type = use_state(cx, || "fairy".to_string());
 
     cx.render(rsx! {
         input {
@@ -60,10 +62,16 @@ pub fn App(cx: Scope) -> Element {
         div {
             display: "flex",
             flex_direction: "row",
-            width: "100%",
-            Search {
-                dex: dex.clone(),
-                pokemon_type: pokemon_type.clone(),
+            div {
+                width: "20%",
+                Search {
+                    dex: dex.clone(),
+                    pokemon_type: pokemon_type.clone(),
+                }
+            }
+            div {
+                width: "30%",
+                Focus {}
             }
         }
     })
@@ -92,72 +100,76 @@ fn Search(cx: Scope<SearchProps>) -> Element {
 }
 
 fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonType) -> Element {
-    let pokemon_names: Vec<String> = types
-        .pokemon
-        .iter()
-        .map(|pokemon| pokemon.pokemon.name.clone())
-        .collect();
-
-    let pokemon_entries: Vec<PokemonEntry> = dex
+    let pokedex_entries = dex
         .pokemon_entries
-        .into_iter()
-        .filter(|entry| pokemon_names.contains(&entry.pokemon_species.name))
-        .collect();
-
-    let pokedex_entries: Vec<DexItem> = pokemon_entries
-        .into_iter()
+        .iter()
+        .filter(|entry| {
+            types
+                .pokemon
+                .iter()
+                .any(|pokemon| pokemon.pokemon.name == entry.pokemon_species.name)
+        })
         .map(|entry| DexItem {
             id: entry.entry_number,
-            name: entry.pokemon_species.name,
-            url: entry.pokemon_species.url,
+            name: entry.pokemon_species.name.clone(),
+            url: types
+                .pokemon
+                .iter()
+                .find(|pokemon| pokemon.pokemon.name == entry.pokemon_species.name)
+                .unwrap()
+                .pokemon
+                .url
+                .clone(),
         })
-        .collect();
+        .collect::<Vec<DexItem>>();
 
     cx.render(rsx! {
         div {
             display: "flex",
             flex_direction: "column",
             width: "100%",
-            pokedex_entries.into_iter().map(|entry| rsx! {
-                DexListing {dex: entry }
-            })
+            DexTable {dex_entries: pokedex_entries }
         }
     })
 }
 
 #[inline_props]
-fn DexListing(cx: Scope, dex: DexItem) -> Element {
-    let DexItem { id, name, url, .. } = dex;
-
+fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
     cx.render(rsx! {
-        div {
-            padding: "0.5rem",
-            position: "relative",
-            div {
-                display: "flex",
-                flex_direction: "row",
-                div {
-                    font_weight: "bold",
-                    padding_right: "0.5rem",
-                    "{id}"
+        table {
+            thead {
+                tr {
+                    th { "id" }
+                    th { "name" }
                 }
-                div {
-                    padding_right: "0.5rem",
-                    "{name}"
-                }
-                div {
-                    padding_right: "0.5rem",
-                    "{url}"
+            }
+            tbody {
+                for entry in dex_entries.iter() {
+                    DexRow { dex_entry: entry.clone() }
                 }
             }
         }
     })
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct StoryPageData {
-    #[serde(flatten)]
-    pub item: PokemonReference,
+#[inline_props]
+fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
+    let focus_state = use_shared_state::<FocusState>(cx).unwrap();
+    let images = use_ref(cx, || None);
+
+    let fut = use_future(cx, &dex_entry.url, |url| {
+        load_focus(images.clone(), focus_state.clone(), url.to_string())
+    });
+
+    cx.render(rsx! {
+        tr {
+            td { "{dex_entry.id}" }
+            td { onclick: move |_| {
+                fut.restart();
+            },
+            "{dex_entry.name}" }
+        }
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -175,4 +187,103 @@ pub async fn get_pokedex(dex: String) -> Result<Pokedex, reqwest::Error> {
 pub async fn get_types(poketype: String) -> Result<PokemonType, reqwest::Error> {
     let url = format!("{}type/{}", BASE_API_URL, poketype);
     reqwest::get(&url).await?.json().await
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ImageUrls {
+    pub default: String,
+    pub shiny: String,
+}
+
+#[derive(Clone, Debug)]
+enum FocusState {
+    Unset,
+    Loading,
+    Loaded(ImageUrls),
+    Failed(String),
+}
+
+fn Focus(cx: Scope) -> Element {
+    let focus_state = use_shared_state::<FocusState>(cx)?;
+
+    match &*focus_state.read() {
+        FocusState::Unset => render! {
+            "Hover over a pokemon to preview it here"
+        },
+        FocusState::Loading => render! {
+            "Loading..."
+        },
+        FocusState::Loaded(urls) => {
+            render! {
+                div {
+                    display: "flex",
+                    flex_direction: "row",
+                    img {
+                        src: "{urls.default}",
+                        width: "100%",
+                    }
+                    img {
+                        src: "{urls.shiny}",
+                        width: "100%",
+                    }
+                }
+            }
+        }
+        FocusState::Failed(err) => render! {
+            "Failed to load image {err}"
+        },
+    }
+}
+
+async fn load_focus(
+    images: UseRef<Option<ImageUrls>>,
+    focus_state: UseSharedState<FocusState>,
+    pokemon_url: String,
+) {
+    if let Some(cached) = &*images.read() {
+        *focus_state.write() = FocusState::Loaded(cached.clone());
+        return;
+    }
+
+    *focus_state.write() = FocusState::Loading;
+    if let Ok(url) = get_images(pokemon_url).await {
+        *focus_state.write() = FocusState::Loaded(url.clone());
+        *images.write() = Some(url);
+    } else {
+        *focus_state.write() = FocusState::Failed("Failed to load image".to_string());
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FocusItem {
+    sprites: Sprite,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Sprite {
+    other: Other,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Other {
+    #[serde(rename = "official-artwork")]
+    official_artwork: OfficialArtwork,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OfficialArtwork {
+    front_default: String,
+    front_shiny: String,
+}
+
+async fn get_images(pokemon_url: String) -> Result<ImageUrls, reqwest::Error> {
+    let pokemon: FocusItem = reqwest::get(&pokemon_url)
+        .await
+        .expect("getting data")
+        .json()
+        .await
+        .expect("parsing json");
+    let default = pokemon.sprites.other.official_artwork.front_default;
+    let shiny = pokemon.sprites.other.official_artwork.front_shiny;
+    Ok(ImageUrls { default, shiny })
 }
