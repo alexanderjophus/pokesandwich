@@ -9,18 +9,18 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@master
+      - uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: stable
-          targets: wasm32-unknown-unknown
-      - name: Install Dioxus CLI
-        uses: taiki-e/install-action@v1
-        with:
-          tool: dioxus-cli@0.4.1
+          override: true
+          target: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v1
+      - name: Install CLI
+        run: cargo install dioxus-cli --locked
       - uses: actions/checkout@v2
       - name: Build
-        run: dx build --release --features web && cargo run --release --features prebuild && cp docs/index.html docs/404.html
+        run: dx build --release && cargo run --release
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4.2.3
         with:
