@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 
 pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
 
+const DEXES: [&str; 2] = ["paldea", "kitakami"];
+const TYPES: [&str; 18] = [
+    "normal", "fighting", "flying", "poison", "ground", "rock", "bug", "ghost", "steel", "fire",
+    "water", "grass", "electric", "psychic", "ice", "dragon", "dark", "fairy",
+];
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pokedex {
     pokemon_entries: Vec<PokemonEntry>,
@@ -44,25 +50,40 @@ fn main() {
 pub fn App(cx: Scope) -> Element {
     use_shared_state_provider(cx, || FocusState::Unset);
     let dex = use_state(cx, || "paldea".to_string());
-    let pokemon_type = use_state(cx, || "fairy".to_string());
+    let pokemon_type = use_state(cx, || "normal".to_string());
+    let images: &UseRef<Option<FocusData>> = use_ref(cx, || None);
 
     cx.render(rsx! {
-        input {
-            value: "{dex}",
-            oninput: move |e| {
+        select {
+            onchange: move |e| {
+                images.needs_update();
                 dex.set(e.data.value.clone());
+            },
+            for dex in &DEXES {
+                option {
+                    value: *dex,
+                    "{dex}"
+                }
             }
         }
-        input {
-            value: "{pokemon_type}",
-            oninput: move |e| {
+        select {
+            onchange: move |e| {
+                images.needs_update();
                 pokemon_type.set(e.data.value.clone());
+            },
+            for pokemon_type in &TYPES {
+                option {
+                    value: *pokemon_type,
+                    "{pokemon_type}"
+                }
             }
         }
         div {
             display: "flex",
             flex_direction: "row",
             div {
+                overflow: "auto",
+                max_height: "100vh",
                 width: "20%",
                 Search {
                     dex: dex.clone(),
@@ -70,7 +91,7 @@ pub fn App(cx: Scope) -> Element {
                 }
             }
             div {
-                width: "30%",
+                width: "80%",
                 Focus {}
             }
         }
@@ -84,17 +105,17 @@ struct SearchProps {
 }
 
 fn Search(cx: Scope<SearchProps>) -> Element {
-    let dexes = use_future(cx, &cx.props.clone(), |_| {
+    let dexes_future = use_future(cx, &cx.props.clone(), |_| {
         get_pokedex(cx.props.dex.to_string())
     });
     let pokemon_types = use_future(cx, &cx.props.clone(), |_| {
         get_types(cx.props.pokemon_type.to_string())
     });
 
-    match (dexes.value(), pokemon_types.value()) {
+    match (dexes_future.value(), pokemon_types.value()) {
         (Some(Ok(dex)), Some(Ok(types))) => render_dex(cx, dex.clone(), types.clone()),
         (Some(Err(err)), _) => render! {"An error occurred while loading dexes {err}"},
-        (_, Some(Err(err))) => render! {"An error occurred while loading dexes {err}"},
+        (_, Some(Err(err))) => render! {"An error occurred while loading types {err}"},
         _ => render! {"Loading items"},
     }
 }
@@ -155,10 +176,14 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
 #[inline_props]
 fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
-    let images = use_ref(cx, || None);
 
     let fut = use_future(cx, &dex_entry.url, |url| {
-        load_focus(images.clone(), focus_state.clone(), url.to_string())
+        log!(
+            "rendering row with data {}: {}",
+            dex_entry.name.clone(),
+            url.clone()
+        );
+        load_focus(focus_state.clone(), url.to_string())
     });
 
     cx.render(rsx! {
@@ -190,16 +215,17 @@ pub async fn get_types(poketype: String) -> Result<PokemonType, reqwest::Error> 
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ImageUrls {
-    pub default: String,
-    pub shiny: String,
+pub struct FocusData {
+    pub name: String,
+    pub default_url: String,
+    pub shiny_url: String,
 }
 
 #[derive(Clone, Debug)]
 enum FocusState {
     Unset,
     Loading,
-    Loaded(ImageUrls),
+    Loaded(FocusData),
     Failed(String),
 }
 
@@ -213,17 +239,20 @@ fn Focus(cx: Scope) -> Element {
         FocusState::Loading => render! {
             "Loading..."
         },
-        FocusState::Loaded(urls) => {
+        FocusState::Loaded(focus_data) => {
             render! {
+                div {
+                    "{focus_data.name.clone()}"
+                }
                 div {
                     display: "flex",
                     flex_direction: "row",
                     img {
-                        src: "{urls.default}",
+                        src: "{focus_data.default_url}",
                         width: "100%",
                     }
                     img {
-                        src: "{urls.shiny}",
+                        src: "{focus_data.shiny_url}",
                         width: "100%",
                     }
                 }
@@ -235,20 +264,10 @@ fn Focus(cx: Scope) -> Element {
     }
 }
 
-async fn load_focus(
-    images: UseRef<Option<ImageUrls>>,
-    focus_state: UseSharedState<FocusState>,
-    pokemon_url: String,
-) {
-    if let Some(cached) = &*images.read() {
-        *focus_state.write() = FocusState::Loaded(cached.clone());
-        return;
-    }
-
+async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String) {
     *focus_state.write() = FocusState::Loading;
     if let Ok(url) = get_images(pokemon_url).await {
         *focus_state.write() = FocusState::Loaded(url.clone());
-        *images.write() = Some(url);
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load image".to_string());
     }
@@ -256,6 +275,7 @@ async fn load_focus(
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FocusItem {
+    name: String,
     sprites: Sprite,
 }
 
@@ -276,7 +296,7 @@ pub struct OfficialArtwork {
     front_shiny: String,
 }
 
-async fn get_images(pokemon_url: String) -> Result<ImageUrls, reqwest::Error> {
+async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
     let pokemon: FocusItem = reqwest::get(&pokemon_url)
         .await
         .expect("getting data")
@@ -285,5 +305,9 @@ async fn get_images(pokemon_url: String) -> Result<ImageUrls, reqwest::Error> {
         .expect("parsing json");
     let default = pokemon.sprites.other.official_artwork.front_default;
     let shiny = pokemon.sprites.other.official_artwork.front_shiny;
-    Ok(ImageUrls { default, shiny })
+    Ok(FocusData {
+        name: pokemon.name,
+        default_url: default,
+        shiny_url: shiny,
+    })
 }

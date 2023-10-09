@@ -22,7 +22,7 @@ base_path = "pokesandwich"
 [web.resource]
 
 # CSS style file
-style = []
+style = ["tailwind.css"]
 
 # Javascript code file
 script = []
