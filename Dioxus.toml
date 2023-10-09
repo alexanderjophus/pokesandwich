@@ -1,0 +1,39 @@
+[application]
+
+# dioxus project name
+name = "pokesandwich"
+
+# default platform
+# you can also use `dioxus serve/build --platform XXX` to use other platform
+# value: web | desktop
+default_platform = "web"
+
+# Web `build` & `serve` dist path
+out_dir = "site"
+
+[web.app]
+
+# HTML title tag content
+title = "Pokesandwich | A open source Pokedex"
+
+base_path = "."
+
+# include `assets` in web platform
+[web.resource]
+
+# CSS style file
+style = []
+
+# Javascript code file
+script = []
+
+[web.resource.dev]
+
+# Javascript code file
+# serve: [dev-server] only
+script = []
+
+[web.watcher]
+
+watch_path = ["src"]
+index_on_404 = true
