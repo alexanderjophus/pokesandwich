@@ -11,8 +11,8 @@
 <body>
   <div id="main"></div>
   <script type="module">
-    import init from "/https://pokedex.alexanderjophus.dev//assets/dioxus/pokesandwich.js";
-    init("/https://pokedex.alexanderjophus.dev//assets/dioxus/pokesandwich_bg.wasm").then(wasm => {
+    import init from "/./assets/dioxus/pokesandwich.js";
+    init("/./assets/dioxus/pokesandwich_bg.wasm").then(wasm => {
       if (wasm.__wbindgen_start == undefined) {
         wasm.main();
       }
