@@ -1,14 +1,31 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
+use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
 pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
 
 const DEXES: [&str; 2] = ["paldea", "kitakami"];
-const TYPES: [&str; 18] = [
-    "normal", "fighting", "flying", "poison", "ground", "rock", "bug", "ghost", "steel", "fire",
-    "water", "grass", "electric", "psychic", "ice", "dragon", "dark", "fairy",
-];
+static TYPES_INGREDIENTS: phf::Map<&'static str, &'static str> = phf_map! {
+    "normal" => "tofu",
+    "grass" => "lettuce",
+    "fire" => "red pepper",
+    "water" => "cucumber",
+    "electric" => "yellow pepper",
+    "ice" => "klawf stick",
+    "fighting" => "pickle",
+    "poison" => "green pepper",
+    "ground" => "ham",
+    "flying" => "prosciutto",
+    "psychic" => "onion",
+    "bug" => "cherry tomato",
+    "rock" => "bacon",
+    "ghost" => "red onion",
+    "dragon" => "avocado",
+    "dark" => "smoked fillet",
+    "steel" => "hamburger",
+    "fairy" => "tomato",
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pokedex {
@@ -70,7 +87,7 @@ pub fn App(cx: Scope) -> Element {
                 images.needs_update();
                 pokemon_type.set(e.data.value.clone());
             },
-            for pokemon_type in &TYPES {
+            for pokemon_type in TYPES_INGREDIENTS.keys() {
                 option {
                     value: *pokemon_type,
                     "{pokemon_type}"
@@ -83,6 +100,7 @@ pub fn App(cx: Scope) -> Element {
             div {
                 overflow: "auto",
                 max_height: "100vh",
+                margin: "10px",
                 width: "20%",
                 Search {
                     dex: dex.clone(),
@@ -90,6 +108,7 @@ pub fn App(cx: Scope) -> Element {
                 }
             }
             div {
+                margin: "10px",
                 width: "80%",
                 Focus {}
             }
@@ -242,6 +261,17 @@ fn Focus(cx: Scope) -> Element {
             render! {
                 h1 {
                     "{focus_data.name.clone()} - {focus_data.primary_type.clone()} - {focus_data.secondary_type.clone().unwrap_or_default()}"
+                }
+                b {
+                    "Shiny sandwich: tomato + onion + green pepper + hamburger + 2 * ({TYPES_INGREDIENTS.get(focus_data.primary_type.as_str()).unwrap_or(&\"\")}"
+                }
+                if let Some(secondary_type) = focus_data.secondary_type.clone() {
+                    rsx!(b {
+                        " or {TYPES_INGREDIENTS.get(secondary_type.as_str()).unwrap_or(&\"\")}"
+                    })
+                }
+                b {
+                    ")"
                 }
                 div {
                     display: "flex",
