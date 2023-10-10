@@ -16,8 +16,6 @@ out_dir = "site"
 # HTML title tag content
 title = "Pokesandwich | A open source Pokedex"
 
-base_path = "https://pokedex.alexanderjophus.dev/"
-
 # include `assets` in web platform
 [web.resource]
 
