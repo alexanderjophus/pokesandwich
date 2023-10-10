@@ -27,7 +27,7 @@ pub struct PokemonSpecies {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonType {
+pub struct PokemonTypeResponse {
     pokemon: Vec<Pokemon>,
 }
 
@@ -119,7 +119,7 @@ fn Search(cx: Scope<SearchProps>) -> Element {
     }
 }
 
-fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonType) -> Element {
+fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) -> Element {
     let pokedex_entries = dex
         .pokemon_entries
         .iter()
@@ -157,8 +157,10 @@ fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonType) -> Eleme
 fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
     cx.render(rsx! {
         table {
+            border_collapse: "collapse",
             thead {
                 tr {
+                    border: "1px solid black",
                     th { "id" }
                     th { "name" }
                 }
@@ -182,6 +184,7 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
 
     cx.render(rsx! {
         tr {
+            border_bottom: "1px solid black",
             td { "{dex_entry.id}" }
             td { onclick: move |_| {
                 fut.restart();
@@ -203,7 +206,7 @@ pub async fn get_pokedex(dex: String) -> Result<Pokedex, reqwest::Error> {
     reqwest::get(&url).await?.json().await
 }
 
-pub async fn get_types(poketype: String) -> Result<PokemonType, reqwest::Error> {
+pub async fn get_types(poketype: String) -> Result<PokemonTypeResponse, reqwest::Error> {
     let url = format!("{}type/{}", BASE_API_URL, poketype);
     reqwest::get(&url).await?.json().await
 }
@@ -213,6 +216,8 @@ pub struct FocusData {
     pub name: String,
     pub default_url: String,
     pub shiny_url: Option<String>,
+    pub primary_type: String,
+    pub secondary_type: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -235,8 +240,8 @@ fn Focus(cx: Scope) -> Element {
         },
         FocusState::Loaded(focus_data) => {
             render! {
-                div {
-                    "{focus_data.name.clone()}"
+                h1 {
+                    "{focus_data.name.clone()} - {focus_data.primary_type.clone()} - {focus_data.secondary_type.clone().unwrap_or_default()}"
                 }
                 div {
                     display: "flex",
@@ -271,6 +276,7 @@ async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String
 pub struct FocusItem {
     name: String,
     sprites: Sprite,
+    types: Vec<Type>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -285,6 +291,17 @@ pub struct Other {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Type {
+    #[serde(rename = "type")]
+    pokemon_type: PokemonType,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PokemonType {
+    name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OfficialArtwork {
     front_default: String,
     front_shiny: Option<String>,
@@ -294,9 +311,14 @@ async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
     let pokemon: FocusItem = reqwest::get(&pokemon_url).await?.json().await?;
     let default = pokemon.sprites.other.official_artwork.front_default;
     let shiny = pokemon.sprites.other.official_artwork.front_shiny;
+    let primary = pokemon.types[0].pokemon_type.name.clone();
+    let secondary = pokemon.types.get(1).map(|t| t.pokemon_type.name.clone());
+
     Ok(FocusData {
         name: pokemon.name,
         default_url: default,
         shiny_url: shiny,
+        primary_type: primary,
+        secondary_type: secondary,
     })
 }
