@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
-use gloo_console::log;
 use serde::{Deserialize, Serialize};
 
 pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
@@ -178,11 +177,6 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
 
     let fut = use_future(cx, &dex_entry.url, |url| {
-        log!(
-            "rendering row with data {}: {}",
-            dex_entry.name.clone(),
-            url.clone()
-        );
         load_focus(focus_state.clone(), url.to_string())
     });
 
@@ -218,7 +212,7 @@ pub async fn get_types(poketype: String) -> Result<PokemonType, reqwest::Error> 
 pub struct FocusData {
     pub name: String,
     pub default_url: String,
-    pub shiny_url: String,
+    pub shiny_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -252,7 +246,7 @@ fn Focus(cx: Scope) -> Element {
                         width: "100%",
                     }
                     img {
-                        src: "{focus_data.shiny_url}",
+                        src: "{focus_data.shiny_url.clone().unwrap_or_default()}",
                         width: "100%",
                     }
                 }
@@ -293,16 +287,11 @@ pub struct Other {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OfficialArtwork {
     front_default: String,
-    front_shiny: String,
+    front_shiny: Option<String>,
 }
 
 async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
-    let pokemon: FocusItem = reqwest::get(&pokemon_url)
-        .await
-        .expect("getting data")
-        .json()
-        .await
-        .expect("parsing json");
+    let pokemon: FocusItem = reqwest::get(&pokemon_url).await?.json().await?;
     let default = pokemon.sprites.other.official_artwork.front_default;
     let shiny = pokemon.sprites.other.official_artwork.front_shiny;
     Ok(FocusData {
