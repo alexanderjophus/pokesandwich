@@ -90,6 +90,7 @@ pub fn App(cx: Scope) -> Element {
             for pokemon_type in TYPES_INGREDIENTS.keys() {
                 option {
                     value: *pokemon_type,
+                    selected: *pokemon_type == "normal",
                     "{pokemon_type}"
                 }
             }
@@ -180,7 +181,6 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
             thead {
                 tr {
                     border: "1px solid black",
-                    th { "id" }
                     th { "name" }
                 }
             }
@@ -200,15 +200,15 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let fut = use_future(cx, &dex_entry.url, |url| {
         load_focus(focus_state.clone(), url.to_string())
     });
-
     cx.render(rsx! {
         tr {
             border_bottom: "1px solid black",
-            td { "{dex_entry.id}" }
-            td { onclick: move |_| {
-                fut.restart();
-            },
-            "{dex_entry.name}" }
+            td {
+                onclick: move |_| {
+                    fut.restart();
+                },
+                "{dex_entry.name}"
+            }
         }
     })
 }
@@ -237,6 +237,7 @@ pub struct FocusData {
     pub shiny_url: Option<String>,
     pub primary_type: String,
     pub secondary_type: Option<String>,
+    pub has_multiple_forms: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -258,6 +259,7 @@ fn Focus(cx: Scope) -> Element {
             "Loading..."
         },
         FocusState::Loaded(focus_data) => {
+            let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
             render! {
                 h1 {
                     "{focus_data.name.clone()} - {focus_data.primary_type.clone()} - {focus_data.secondary_type.clone().unwrap_or_default()}"
@@ -272,6 +274,44 @@ fn Focus(cx: Scope) -> Element {
                 }
                 b {
                     ")"
+                }
+                p {
+                    table {
+                        border_collapse: "collapse",
+                        thead {
+                            tr {
+                                border: "1px solid black",
+                                td {
+                                    "serebii"
+                                }
+                                td {
+                                    "has multiple forms"
+                                    span {
+                                        title: "this may be incorrect, check serebii to be certain",
+                                        "⚠️"
+                                    }
+                                }
+                            }
+                        }
+                        tbody {
+                            tr {
+                                td {
+                                    a {
+                                        href: "{serebii_link}",
+                                        target: "_blank",
+                                        "{focus_data.name.clone()}"
+                                    }
+                                }
+                                td {
+                                    if focus_data.has_multiple_forms {
+                                        "yes"
+                                    } else {
+                                        "no"
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 div {
                     display: "flex",
@@ -305,8 +345,14 @@ async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FocusItem {
     name: String,
+    forms: Vec<Form>,
     sprites: Sprite,
     types: Vec<Type>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Form {
+    name: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -350,5 +396,6 @@ async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
         shiny_url: shiny,
         primary_type: primary,
         secondary_type: secondary,
+        has_multiple_forms: pokemon.forms.len() > 1,
     })
 }
