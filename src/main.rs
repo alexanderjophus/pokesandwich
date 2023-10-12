@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
+use dioxus_router::prelude::*;
 use dioxus_storage::use_persistent;
+use log::{info, LevelFilter};
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +29,88 @@ static TYPES_INGREDIENTS: phf::Map<&'static str, &'static str> = phf_map! {
     "steel" => "hamburger",
     "fairy" => "tomato",
 };
+
+#[derive(Routable, Clone)]
+#[rustfmt::skip]
+enum Route {
+    #[layout(NavBar)]
+        #[route("/")]
+        Home {},
+        #[route("/dex/:dex/type/:pokemon_type")]
+        DexByType {
+            dex: String,
+            pokemon_type: String,
+        },
+    #[end_layout]
+    #[route("/:..route")]
+    PageNotFound {
+        route: Vec<String>,
+    },
+}
+
+pub fn App(cx: Scope) -> Element {
+    render! {
+        Router::<Route> {}
+    }
+}
+
+#[inline_props]
+fn NavBar(cx: Scope) -> Element {
+    render! {
+        nav {
+            display: "flex",
+            flex_direction: "row",
+            background_color: "grey",
+            ul {
+                li { Link { to: Route::Home {}, "Home" } }
+            }
+        }
+        Outlet::<Route> {}
+    }
+}
+
+#[inline_props]
+fn Home(cx: Scope) -> Element {
+    cx.render(rsx! {
+        h1 { "Welcome to the pokemon dex" }
+        p { "Select a dex and a type to get started" }
+        form {
+            display: "flex",
+            flex_direction: "row",
+            onsubmit: move |event| {
+                info!("submitting form: {event:?}");
+            },
+            select {
+                width: "20%",
+                option {
+                    value: "",
+                    "Select a dex"
+                }
+                for dex in DEXES.iter() {
+                    option {
+                        value: *dex,
+                        "{dex}"
+                    }
+                }
+            }
+            select {
+                width: "20%",
+                option {
+                    value: "",
+                    "Select a type"
+                }
+                for key in TYPES_INGREDIENTS.keys() {
+                    option {
+                        value: *key,
+                        "{key}"
+                    }
+                }
+            }
+            input { r#type: "submit", },
+        }
+        Footer {}
+    })
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pokedex {
@@ -60,45 +144,14 @@ pub struct PokemonReference {
     name: String,
 }
 
-fn main() {
-    dioxus_web::launch(App);
-}
-
-pub fn App(cx: Scope) -> Element {
+#[inline_props]
+pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
     use_shared_state_provider(cx, || FocusState::Unset);
-    let dex = use_state(cx, || "paldea".to_string());
-    let pokemon_type = use_state(cx, || "normal".to_string());
-    let images: &UseRef<Option<FocusData>> = use_ref(cx, || None);
 
     cx.render(rsx! {
         script {
             src: "https://kit.fontawesome.com/e04bfc6d26.js",
             crossorigin: "anonymous",
-        }
-        select {
-            onchange: move |e| {
-                images.needs_update();
-                dex.set(e.data.value.clone());
-            },
-            for dex in &DEXES {
-                option {
-                    value: *dex,
-                    "{dex}"
-                }
-            }
-        }
-        select {
-            onchange: move |e| {
-                images.needs_update();
-                pokemon_type.set(e.data.value.clone());
-            },
-            for pokemon_type in TYPES_INGREDIENTS.keys() {
-                option {
-                    value: *pokemon_type,
-                    selected: *pokemon_type == "normal",
-                    "{pokemon_type}"
-                }
-            }
         }
         div {
             display: "flex",
@@ -119,59 +172,14 @@ pub fn App(cx: Scope) -> Element {
                 Focus {}
             }
         }
-        footer {
-            position: "fixed",
-            bottom: "0",
-            left: "0",
-            right: "0",
-            height: "50px",
-            background_color: "grey",
-            color: "white",
-            display: "flex",
-            flex_direction: "row",
-            justify_content: "center",
-            align_items: "center",
-            "Made with "
-            span {
-                color: "red",
-                "❤️"
-            }
-            " by Alexander Jophus"
-            a {
-                href: "https://github.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-github",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    color: "white",
-                }
-            }
-            a {
-                href: "https://twitter.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-twitter",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    margin_right: "10px",
-                    color: "white",
-                }
-            }
-            "Pokemon data from "
-            a {
-                href: "https://pokeapi.co/",
-                target: "_blank",
-                "pokeapi.co"
-            }
-        }
+        Footer {}
     })
 }
 
 #[derive(PartialEq, Props, Clone)]
 struct SearchProps {
-    dex: UseState<String>,
-    pokemon_type: UseState<String>,
+    dex: String,
+    pokemon_type: String,
 }
 
 fn Search(cx: Scope<SearchProps>) -> Element {
@@ -471,4 +479,73 @@ async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
         secondary_type: secondary,
         has_multiple_forms: pokemon.forms.len() > 1,
     })
+}
+
+#[inline_props]
+fn PageNotFound(cx: Scope, route: Vec<String>) -> Element {
+    render! {
+        h1 { "Page not found" }
+        p { "We are terribly sorry, but the page you requested doesn't exist." }
+        pre {
+            color: "red",
+            "log:\nattemped to navigate to: {route:?}"
+        }
+    }
+}
+
+#[inline_props]
+fn Footer(cx: Scope) -> Element {
+    render! {
+        footer {
+            position: "fixed",
+            bottom: "0",
+            left: "0",
+            right: "0",
+            height: "50px",
+            background_color: "grey",
+            color: "white",
+            display: "flex",
+            flex_direction: "row",
+            justify_content: "center",
+            align_items: "center",
+            "Made with "
+            span {
+                color: "red",
+                "❤️"
+            }
+            " by Alexander Jophus"
+            a {
+                href: "https://github.com/alexanderjophus",
+                target: "_blank",
+                i {
+                    class: "fa fa-github",
+                    font_size: "30px",
+                    margin_left: "10px",
+                    color: "white",
+                }
+            }
+            a {
+                href: "https://twitter.com/alexanderjophus",
+                target: "_blank",
+                i {
+                    class: "fa fa-twitter",
+                    font_size: "30px",
+                    margin_left: "10px",
+                    margin_right: "10px",
+                    color: "white",
+                }
+            }
+            "Pokemon data from "
+            a {
+                href: "https://pokeapi.co/",
+                target: "_blank",
+                "pokeapi.co"
+            }
+        }
+    }
+}
+
+fn main() {
+    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
+    dioxus_web::launch(App);
 }

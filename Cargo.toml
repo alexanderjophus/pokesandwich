@@ -14,3 +14,6 @@ dioxus-web = "0.4.0"
 phf = { version = "0.11", features = ["macros"] }
 gloo-storage = "0.3.0"
 dioxus_storage = "0.0.3"
+dioxus-router = "0.4.1"
+dioxus-logger = "0.4.1"
+log = "0.4.20"
