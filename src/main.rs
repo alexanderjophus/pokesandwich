@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
+use gloo_storage::{LocalStorage, Storage};
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
@@ -153,6 +154,7 @@ pub fn App(cx: Scope) -> Element {
                     class: "fa fa-twitter",
                     font_size: "30px",
                     margin_left: "10px",
+                    margin_right: "10px",
                     color: "white",
                 }
             }
@@ -253,10 +255,28 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
         tr {
             border_bottom: "1px solid black",
             td {
-                onclick: move |_| {
-                    fut.restart();
-                },
-                "{dex_entry.name}"
+                div {
+                    width: "80%",
+                    onclick: move |_| {
+                        fut.restart();
+                    },
+                    "{dex_entry.name}"
+                }
+                div {
+                    width: "20%",
+                    onclick: move |_| {
+                        let fav: bool = LocalStorage::get(&dex_entry.name).unwrap_or_default();
+                        LocalStorage::set(&dex_entry.name, !fav).ok();
+                    },
+                    i {
+                        class: "fa fa-heart",
+                        color: if LocalStorage::get(&dex_entry.name).unwrap_or_default() {
+                            "red"
+                        } else {
+                            "grey"
+                        },
+                    }
+                }
             }
         }
     })
