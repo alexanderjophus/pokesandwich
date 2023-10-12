@@ -2,33 +2,14 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 use dioxus_storage::use_persistent;
-use log::{info, LevelFilter};
-use phf::phf_map;
+use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 
-pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
+mod consts;
+mod footer;
+mod home;
 
-const DEXES: [&str; 2] = ["paldea", "kitakami"];
-static TYPES_INGREDIENTS: phf::Map<&'static str, &'static str> = phf_map! {
-    "normal" => "tofu",
-    "grass" => "lettuce",
-    "fire" => "red pepper",
-    "water" => "cucumber",
-    "electric" => "yellow pepper",
-    "ice" => "klawf stick",
-    "fighting" => "pickle",
-    "poison" => "green pepper",
-    "ground" => "ham",
-    "flying" => "prosciutto",
-    "psychic" => "onion",
-    "bug" => "cherry tomato",
-    "rock" => "bacon",
-    "ghost" => "red onion",
-    "dragon" => "avocado",
-    "dark" => "smoked fillet",
-    "steel" => "hamburger",
-    "fairy" => "tomato",
-};
+use consts::{BASE_API_URL, TYPES_INGREDIENTS};
 
 #[derive(Routable, Clone)]
 #[rustfmt::skip]
@@ -54,6 +35,12 @@ pub fn App(cx: Scope) -> Element {
     }
 }
 
+pub fn Home(cx: Scope) -> Element {
+    render! {
+        home::Home {}
+    }
+}
+
 #[inline_props]
 fn NavBar(cx: Scope) -> Element {
     render! {
@@ -67,49 +54,6 @@ fn NavBar(cx: Scope) -> Element {
         }
         Outlet::<Route> {}
     }
-}
-
-#[inline_props]
-fn Home(cx: Scope) -> Element {
-    cx.render(rsx! {
-        h1 { "Welcome to the pokemon dex" }
-        p { "Select a dex and a type to get started" }
-        form {
-            display: "flex",
-            flex_direction: "row",
-            onsubmit: move |event| {
-                info!("submitting form: {event:?}");
-            },
-            select {
-                width: "20%",
-                option {
-                    value: "",
-                    "Select a dex"
-                }
-                for dex in DEXES.iter() {
-                    option {
-                        value: *dex,
-                        "{dex}"
-                    }
-                }
-            }
-            select {
-                width: "20%",
-                option {
-                    value: "",
-                    "Select a type"
-                }
-                for key in TYPES_INGREDIENTS.keys() {
-                    option {
-                        value: *key,
-                        "{key}"
-                    }
-                }
-            }
-            input { r#type: "submit", },
-        }
-        Footer {}
-    })
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -172,7 +116,7 @@ pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
                 Focus {}
             }
         }
-        Footer {}
+        footer::Footer {}
     })
 }
 
@@ -489,58 +433,6 @@ fn PageNotFound(cx: Scope, route: Vec<String>) -> Element {
         pre {
             color: "red",
             "log:\nattemped to navigate to: {route:?}"
-        }
-    }
-}
-
-#[inline_props]
-fn Footer(cx: Scope) -> Element {
-    render! {
-        footer {
-            position: "fixed",
-            bottom: "0",
-            left: "0",
-            right: "0",
-            height: "50px",
-            background_color: "grey",
-            color: "white",
-            display: "flex",
-            flex_direction: "row",
-            justify_content: "center",
-            align_items: "center",
-            "Made with "
-            span {
-                color: "red",
-                "❤️"
-            }
-            " by Alexander Jophus"
-            a {
-                href: "https://github.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-github",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    color: "white",
-                }
-            }
-            a {
-                href: "https://twitter.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-twitter",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    margin_right: "10px",
-                    color: "white",
-                }
-            }
-            "Pokemon data from "
-            a {
-                href: "https://pokeapi.co/",
-                target: "_blank",
-                "pokeapi.co"
-            }
         }
     }
 }
