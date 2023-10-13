@@ -20,7 +20,7 @@ title = "Pokesandwich | A open source Pokedex"
 [web.resource]
 
 # CSS style file
-style = ["tailwind.css"]
+style = ["/tailwind.css"]
 
 # Javascript code file
 script = []

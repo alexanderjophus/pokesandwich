@@ -97,8 +97,7 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
             border_collapse: "collapse",
             thead {
                 tr {
-                    border: "1px solid black",
-                    th { "name" }
+                    th { "Pokemon Name" }
                 }
             }
             tbody {
@@ -120,7 +119,7 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     });
     cx.render(rsx! {
         tr {
-            border_bottom: "1px solid black",
+            class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
             td {
                 div {
                     display: "flex",
