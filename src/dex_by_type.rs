@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use dioxus_storage::use_persistent;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 use crate::consts::{BASE_API_URL, TYPES_INGREDIENTS};
 use crate::footer;
@@ -115,8 +116,8 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
 
 #[inline_props]
 fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
+    let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
-    let fav = use_persistent(cx, &dex_entry.name, || false);
 
     let fut = use_future(cx, &dex_entry.url, |url| {
         load_focus(focus_state.clone(), url.to_string())
@@ -138,15 +139,19 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
                     div {
                         width: "20%",
                         onclick: move |_| {
-                            fav.set(!fav.get());
+                            if fav.get().contains(&dex_entry.name) {
+                                fav.modify(|faves| { faves.remove(&dex_entry.name); } );
+                            } else {
+                                fav.modify(|faves| { faves.insert(dex_entry.name.clone()); } );
+                            }
                         },
                         i {
                             class: "fa fa-heart",
-                            color: if fav.get() {
+                            color: if fav.get().contains(&dex_entry.name) {
                                 "red"
                             } else {
                                 "grey"
-                            },
+                            }
                         }
                     }
                 }
