@@ -5,6 +5,7 @@ use log::LevelFilter;
 
 mod consts;
 mod dex_by_type;
+mod favourites;
 mod footer;
 mod home;
 
@@ -19,10 +20,12 @@ enum Route {
             dex: String,
             pokemon_type: String,
         },
+        #[route("/favourites")]
+        Favourites {},
     #[end_layout]
-    #[route("/:..route")]
+    #[route("/:.._route")]
     PageNotFound {
-        route: Vec<String>,
+        _route: Vec<String>,
     },
 }
 
@@ -49,6 +52,13 @@ pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
 }
 
 #[inline_props]
+pub fn Favourites(cx: Scope) -> Element {
+    render! {
+        favourites::Favourites {}
+    }
+}
+
+#[inline_props]
 fn NavBar(cx: Scope) -> Element {
     render! {
         nav {
@@ -57,6 +67,7 @@ fn NavBar(cx: Scope) -> Element {
             background_color: "grey",
             ul {
                 li { Link { to: Route::Home {}, "Home" } }
+                li { Link { to: Route::Favourites {  }, "Favourites" } }
             }
         }
         Outlet::<Route> {}
@@ -64,14 +75,10 @@ fn NavBar(cx: Scope) -> Element {
 }
 
 #[inline_props]
-fn PageNotFound(cx: Scope, route: Vec<String>) -> Element {
+fn PageNotFound(cx: Scope, _route: Vec<String>) -> Element {
     render! {
         h1 { "Page not found" }
         p { "We are terribly sorry, but the page you requested doesn't exist." }
-        pre {
-            color: "red",
-            "log:\nattemped to navigate to: {route:?}"
-        }
     }
 }
 

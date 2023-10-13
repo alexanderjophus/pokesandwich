@@ -11,10 +11,6 @@ pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
     use_shared_state_provider(cx, || FocusState::Unset);
 
     cx.render(rsx! {
-        script {
-            src: "https://kit.fontawesome.com/e04bfc6d26.js",
-            crossorigin: "anonymous",
-        }
         div {
             display: "flex",
             flex_direction: "row",
@@ -346,6 +342,12 @@ pub struct Other {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OfficialArtwork {
+    front_default: String,
+    front_shiny: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Type {
     #[serde(rename = "type")]
     pokemon_type: PokemonType,
@@ -354,12 +356,6 @@ pub struct Type {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PokemonType {
     name: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct OfficialArtwork {
-    front_default: String,
-    front_shiny: Option<String>,
 }
 
 async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
