@@ -8,7 +8,7 @@ pub fn Footer(cx: Scope) -> Element {
             crossorigin: "anonymous",
         }
         footer {
-            position: "fixed",
+            position: "relative",
             bottom: "0",
             left: "0",
             right: "0",
