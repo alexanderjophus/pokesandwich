@@ -3,7 +3,7 @@ use dioxus_storage::use_persistent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::consts::{BASE_API_URL, TYPES_INGREDIENTS};
+use crate::consts::{BASE_API_URL, TYPES_INFO, TYPES_INGREDIENTS};
 use crate::footer;
 
 #[inline_props]
@@ -11,24 +11,11 @@ pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
     use_shared_state_provider(cx, || FocusState::Unset);
 
     cx.render(rsx! {
-        div {
-            display: "flex",
-            flex_direction: "row",
-            div {
-                overflow: "auto",
-                max_height: "100vh",
-                margin: "10px",
-                width: "20%",
-                Search {
-                    dex: dex.clone(),
-                    pokemon_type: pokemon_type.clone(),
-                }
+        div { display: "flex", flex_direction: "row",
+            div { overflow: "auto", max_height: "100vh", margin: "10px", width: "20%",
+                Search { dex: dex.clone(), pokemon_type: pokemon_type.clone() }
             }
-            div {
-                margin: "10px",
-                width: "80%",
-                Focus {}
-            }
+            div { margin: "10px", width: "80%", Focus {} }
         }
         footer::Footer {}
     })
@@ -81,24 +68,17 @@ fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) 
         .collect::<Vec<DexItem>>();
 
     cx.render(rsx! {
-        div {
-            display: "flex",
-            flex_direction: "column",
-            width: "100%",
-            DexTable {dex_entries: pokedex_entries }
-        }
+        div { overflow: "hidden", background_color: TYPES_INFO.get(cx.props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{cx.props.pokemon_type.clone()}.svg" } }
+        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { dex_entries: pokedex_entries } }
     })
 }
 
 #[inline_props]
 fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
     cx.render(rsx! {
-        table {
-            border_collapse: "collapse",
+        table { border_collapse: "collapse",
             thead {
-                tr {
-                    th { "Pokemon Name" }
-                }
+                tr { th { "Pokemon Name" } }
             }
             tbody {
                 for entry in dex_entries.iter() {
@@ -118,12 +98,9 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
         load_focus(focus_state.clone(), url.to_string())
     });
     cx.render(rsx! {
-        tr {
-            class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
+        tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
             td {
-                div {
-                    display: "flex",
-                    flex_direction: "row",
+                div { display: "flex", flex_direction: "row",
                     div {
                         width: "80%",
                         onclick: move |_| {
@@ -135,19 +112,16 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
                         width: "20%",
                         onclick: move |_| {
                             if fav.get().contains(&dex_entry.name) {
-                                fav.modify(|faves| { faves.remove(&dex_entry.name); } );
+                                fav.modify(|faves| {
+                                    faves.remove(&dex_entry.name);
+                                });
                             } else {
-                                fav.modify(|faves| { faves.insert(dex_entry.name.clone()); } );
+                                fav.modify(|faves| {
+                                    faves.insert(dex_entry.name.clone());
+                                });
                             }
                         },
-                        i {
-                            class: "fa fa-heart",
-                            color: if fav.get().contains(&dex_entry.name) {
-                                "red"
-                            } else {
-                                "grey"
-                            }
-                        }
+                        i { class: "fa fa-heart", color: if fav.get().contains(&dex_entry.name) { "red" } else { "grey" } }
                     }
                 }
             }
@@ -226,12 +200,8 @@ fn Focus(cx: Scope) -> Element {
     let focus_state = use_shared_state::<FocusState>(cx)?;
 
     match &*focus_state.read() {
-        FocusState::Unset => render! {
-            "Hover over a pokemon to preview it here"
-        },
-        FocusState::Loading => render! {
-            "Loading..."
-        },
+        FocusState::Unset => render! {"Hover over a pokemon to preview it here"},
+        FocusState::Loading => render! {"Loading..."},
         FocusState::Loaded(focus_data) => {
             let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
             render! {
@@ -246,22 +216,15 @@ fn Focus(cx: Scope) -> Element {
                         " or {TYPES_INGREDIENTS.get(secondary_type.as_str()).unwrap_or(&\"\")}"
                     })
                 }
-                b {
-                    ")"
-                }
+                b { ")" }
                 p {
-                    table {
-                        border_collapse: "collapse",
+                    table { border_collapse: "collapse",
                         thead {
-                            tr {
-                                border: "1px solid black",
-                                td {
-                                    "serebii"
-                                }
+                            tr { border: "1px solid black",
+                                td { "serebii" }
                                 td {
                                     "has multiple forms"
-                                    span {
-                                        title: "this may be incorrect, check serebii to be certain",
+                                    span { title: "this may be incorrect, check serebii to be certain",
                                         "⚠️"
                                     }
                                 }
@@ -269,13 +232,7 @@ fn Focus(cx: Scope) -> Element {
                         }
                         tbody {
                             tr {
-                                td {
-                                    a {
-                                        href: "{serebii_link}",
-                                        target: "_blank",
-                                        "{focus_data.name.clone()}"
-                                    }
-                                }
+                                td { a { href: "{serebii_link}", target: "_blank", "{focus_data.name.clone()}" } }
                                 td {
                                     if focus_data.has_multiple_forms {
                                         "yes"
@@ -287,23 +244,16 @@ fn Focus(cx: Scope) -> Element {
                         }
                     }
                 }
-                div {
-                    display: "flex",
-                    flex_direction: "row",
-                    img {
-                        src: "{focus_data.default_url}",
-                        width: "100%",
-                    }
+                div { display: "flex", flex_direction: "row",
+                    img { src: "{focus_data.default_url}", width: "100%" }
                     img {
                         src: "{focus_data.shiny_url.clone().unwrap_or_default()}",
-                        width: "100%",
+                        width: "100%"
                     }
                 }
             }
         }
-        FocusState::Failed(err) => render! {
-            "Failed to load image {err}"
-        },
+        FocusState::Failed(err) => render! {"Failed to load image {err}"},
     }
 }
 

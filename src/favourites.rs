@@ -13,9 +13,7 @@ pub fn Favourites(cx: Scope) -> Element {
     cx.render(rsx! {
         h1 { "Favourites" }
         for fav in &faves.get() {
-            FavouritePokemon {
-                pokemon_name: fav.clone(),
-            }
+            FavouritePokemon { pokemon_name: fav.clone() }
         }
         footer::Footer {}
     })
@@ -26,11 +24,7 @@ fn FavouritePokemon(cx: Scope, pokemon_name: String) -> Element {
     let pokemon_fut = use_future(cx, (), |_| get_pokemon(pokemon_name.to_string()));
 
     match pokemon_fut.value() {
-        Some(Ok(pokemon)) => render! {
-            render_pokemon {
-                pokemon: pokemon.clone(),
-            },
-        },
+        Some(Ok(pokemon)) => render! { render_pokemon { pokemon: pokemon.clone() } },
         _ => render! {"Loading items"},
     }
 }
@@ -43,17 +37,9 @@ fn render_pokemon(cx: Scope, pokemon: Pokemon) -> Element {
 
     cx.render(rsx! {
         h1 { pokemon_name }
-        div {
-            display: "flex",
-            flex_direction: "row",
-            img {
-                src: "{default_image}",
-                width: "100%",
-            }
-            img {
-                src: "{shiny_image.clone().unwrap_or_default()}",
-                width: "100%",
-            }
+        div { display: "flex", flex_direction: "row",
+            img { src: "{default_image}", width: "100%" }
+            img { src: "{shiny_image.clone().unwrap_or_default()}", width: "100%" }
         }
     })
 }

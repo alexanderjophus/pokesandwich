@@ -11,23 +11,15 @@ pub fn Home(cx: Scope) -> Element {
     cx.render(rsx! {
         h1 { "Welcome to the pokemon dex" }
         p { "Select a dex and a type to get started" }
-        div {
-            display: "flex",
-            flex_direction: "row",
+        div { display: "flex", flex_direction: "row",
             select {
                 width: "20%",
                 oninput: move |event| {
                     dex.set(event.data.value.clone());
                 },
-                option {
-                    value: "",
-                    "Select a dex"
-                }
+                option { value: "", "Select a dex" }
                 for dex in DEXES.iter() {
-                    option {
-                        value: *dex,
-                        "{dex}"
-                    }
+                    option { value: *dex, "{dex}" }
                 }
             }
             select {
@@ -35,21 +27,12 @@ pub fn Home(cx: Scope) -> Element {
                 oninput: move |event| {
                     pokemon_type.set(event.data.value.clone());
                 },
-                option {
-                    value: "",
-                    "Select a type"
-                }
+                option { value: "", "Select a type" }
                 for key in TYPES_INGREDIENTS.keys() {
-                    option {
-                        value: *key,
-                        "{key}"
-                    }
+                    option { value: *key, "{key}" }
                 }
             }
-            a {
-                href: "/dex/{dex.get()}/type/{pokemon_type.get()}",
-                "Search"
-            }
+            a { href: "/dex/{dex.get()}/type/{pokemon_type.get()}", "Search" }
         }
         footer::Footer {}
     })

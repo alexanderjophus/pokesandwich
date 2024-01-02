@@ -30,32 +30,21 @@ enum Route {
 }
 
 pub fn App(cx: Scope) -> Element {
-    render! {
-        Router::<Route> {}
-    }
+    render! { Router::<Route> {} }
 }
 
 pub fn Home(cx: Scope) -> Element {
-    render! {
-        home::Home {}
-    }
+    render! { home::Home {} }
 }
 
 #[inline_props]
 pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
-    render! {
-        dex_by_type::DexByType {
-            dex: dex.clone(),
-            pokemon_type: pokemon_type.clone(),
-        }
-    }
+    render! { dex_by_type::DexByType { dex: dex.clone(), pokemon_type: pokemon_type.clone() } }
 }
 
 #[inline_props]
 pub fn Favourites(cx: Scope) -> Element {
-    render! {
-        favourites::Favourites {}
-    }
+    render! { favourites::Favourites {} }
 }
 
 #[inline_props]
@@ -64,11 +53,13 @@ fn NavBar(cx: Scope) -> Element {
         nav {
             display: "flex",
             flex_direction: "row",
+            justify_content: "space-between",
+            align_items: "center",
             background_color: "grey",
-            ul {
-                li { Link { to: Route::Home {}, "Home" } }
-                li { Link { to: Route::Favourites {  }, "Favourites" } }
-            }
+            color: "white",
+            padding: "10px",
+            Link { to: "/", "Pokemon Dex" }
+            Link { to: "/favourites", "Favourites" }
         }
         Outlet::<Route> {}
     }

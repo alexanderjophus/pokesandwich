@@ -3,10 +3,7 @@ use dioxus::prelude::*;
 #[inline_props]
 pub fn Footer(cx: Scope) -> Element {
     render! {
-        script {
-            src: "https://kit.fontawesome.com/e04bfc6d26.js",
-            crossorigin: "anonymous",
-        }
+        script { src: "https://kit.fontawesome.com/e04bfc6d26.js", crossorigin: "anonymous" }
         footer {
             position: "relative",
             bottom: "0",
@@ -20,38 +17,18 @@ pub fn Footer(cx: Scope) -> Element {
             justify_content: "center",
             align_items: "center",
             "Made with "
-            span {
-                color: "red",
-                "❤️"
-            }
+            span { color: "red", "❤️" }
             " by Alexander Jophus"
-            a {
-                href: "https://github.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-github",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    color: "white",
-                }
-            }
-            a {
-                href: "https://twitter.com/alexanderjophus",
-                target: "_blank",
-                i {
-                    class: "fa fa-twitter",
-                    font_size: "30px",
-                    margin_left: "10px",
-                    margin_right: "10px",
-                    color: "white",
-                }
-            }
+            a { href: "https://github.com/alexanderjophus", target: "_blank", i { class: "fa fa-github", font_size: "30px", margin_left: "10px", color: "white" } }
+            a { href: "https://twitter.com/alexanderjophus", target: "_blank", i {
+                class: "fa fa-twitter",
+                font_size: "30px",
+                margin_left: "10px",
+                margin_right: "10px",
+                color: "white"
+            } }
             "Pokemon data from "
-            a {
-                href: "https://pokeapi.co/",
-                target: "_blank",
-                "pokeapi.co"
-            }
+            a { href: "https://pokeapi.co/", target: "_blank", "pokeapi.co" }
         }
     }
 }
