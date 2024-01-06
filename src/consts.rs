@@ -4,32 +4,16 @@ pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
 
 pub static DEXES: [&str; 3] = ["paldea", "kitakami", "blueberry"];
 
+pub static TYPES: [&str; 18] = [
+    "normal", "grass", "fire", "water", "electric", "ice", "fighting", "poison", "ground",
+    "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy",
+];
+
 pub struct TypeInfo {
     pub name: &'static str,
     pub color: &'static str,
     pub ingredient: &'static str,
 }
-
-pub static TYPES_INGREDIENTS: phf::Map<&'static str, &'static str> = phf_map! {
-    "normal" => "tofu",
-    "grass" => "lettuce",
-    "fire" => "red pepper",
-    "water" => "cucumber",
-    "electric" => "yellow pepper",
-    "ice" => "klawf stick",
-    "fighting" => "pickle",
-    "poison" => "green pepper",
-    "ground" => "ham",
-    "flying" => "prosciutto",
-    "psychic" => "onion",
-    "bug" => "cherry tomato",
-    "rock" => "bacon",
-    "ghost" => "red onion",
-    "dragon" => "avocado",
-    "dark" => "smoked fillet",
-    "steel" => "hamburger",
-    "fairy" => "tomato",
-};
 
 pub static TYPES_INFO: phf::Map<&'static str, TypeInfo> = phf_map! {
     "normal" => TypeInfo {

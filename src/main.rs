@@ -42,7 +42,7 @@ fn NavBar(cx: Scope) -> Element {
             background_color: "grey",
             color: "white",
             padding: "10px",
-            Link { to: "/", "PokéDex" }
+            Link { to: "/", "Pokédex" }
             Link { to: "/favourites", "Favourites" }
         }
         Outlet::<Route> {}

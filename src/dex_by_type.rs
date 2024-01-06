@@ -3,7 +3,7 @@ use dioxus_storage::use_persistent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::consts::{BASE_API_URL, TYPES_INFO, TYPES_INGREDIENTS};
+use crate::consts::{BASE_API_URL, TYPES_INFO};
 use crate::footer;
 
 #[inline_props]
@@ -209,11 +209,11 @@ fn Focus(cx: Scope) -> Element {
                     "{focus_data.name.clone()} - {focus_data.primary_type.clone()} - {focus_data.secondary_type.clone().unwrap_or_default()}"
                 }
                 b {
-                    "Shiny sandwich: tomato + onion + green pepper + hamburger + 2 * ({TYPES_INGREDIENTS.get(focus_data.primary_type.as_str()).unwrap_or(&\"\")}"
+                    "Shiny sandwich: tomato + onion + green pepper + hamburger + 2 * ({TYPES_INFO.get(focus_data.primary_type.as_str()).unwrap().ingredient}"
                 }
                 if let Some(secondary_type) = focus_data.secondary_type.clone() {
                     rsx!(b {
-                        " or {TYPES_INGREDIENTS.get(secondary_type.as_str()).unwrap_or(&\"\")}"
+                        " or {TYPES_INFO.get(secondary_type.as_str()).unwrap().ingredient}"
                     })
                 }
                 b { ")" }

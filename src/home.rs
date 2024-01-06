@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::consts::{DEXES, TYPES_INGREDIENTS};
+use crate::consts::{DEXES, TYPES};
 use crate::dex_by_type;
 use crate::footer;
 
@@ -25,6 +25,7 @@ pub fn Home(cx: Scope) -> Element {
         h1 { "Welcome to the shiny hunters pokédex" }
         div { display: "flex", flex_direction: "row",
             select {
+                class: "bg-white font-bold py-2 px-4 rounded",
                 width: "20%",
                 oninput: move |event| {
                     dex.set(event.data.value.clone());
@@ -36,17 +37,19 @@ pub fn Home(cx: Scope) -> Element {
                 }
             }
             select {
+                class: "bg-white font-bold py-2 px-4 rounded",
                 width: "20%",
                 oninput: move |event| {
                     pokemon_type.set(event.data.value.clone());
                 },
-                for key in TYPES_INGREDIENTS.keys() {
+                for key in TYPES.iter() {
                     option {
                         value: *key, "{key}"
                     }
                 }
             }
             button {
+                class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
                 onclick: move |_| {
                     *search_state.write() = SearchState::Set {
                         dex: dex.to_string(),
