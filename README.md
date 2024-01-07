@@ -1,8 +1,10 @@
 # Pokemon Pokedex
 
+https://pokedex.alexanderjophus.dev
+
 ## Description
 
-This is a Rust project that uses the PokeAPI to create a Pokedex. It allows users to select a Pokemon type and view all Pokemon of that type. It also provides information about each Pokemon, including their name, type, and image. The project uses the Dioxus framework for the frontend.
+This is a Rust project that uses the PokeAPI to create a Pokedex. It allows users to select a Pokemon type and view all Pokemon of that type. It also provides information about each Pokemon, including their name, type, and default/shiny images. The project uses the Dioxus framework for the frontend.
 
 ## Features
 
@@ -21,9 +23,9 @@ dx serve
 # Dependencies
 
 Dioxus: A Rust framework for building web applications
-Reqwest: A Rust library for making HTTP requests
-Serde: A Rust library for serializing and deserializing data
-PHF: A Rust library for creating perfect hash functions
+Reqwest: A Rust crate for making HTTP requests
+Serde: A Rust crate for serializing and deserializing data
+PHF: A Rust crate for creating perfect hash functions
 
 # Contributing
 

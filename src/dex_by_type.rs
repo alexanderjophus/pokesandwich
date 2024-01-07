@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use crate::consts::{BASE_API_URL, TYPES_INFO};
-use crate::footer;
 
 #[inline_props]
 pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
@@ -17,7 +16,6 @@ pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
             }
             div { margin: "10px", width: "80%", Focus {} }
         }
-        footer::Footer {}
     })
 }
 
@@ -36,14 +34,14 @@ fn Search(cx: Scope<SearchProps>) -> Element {
     });
 
     match (dexes_future.value(), pokemon_types.value()) {
-        (Some(Ok(dex)), Some(Ok(types))) => render_dex(cx, dex.clone(), types.clone()),
+        (Some(Ok(dex)), Some(Ok(types))) => RenderDex(cx, dex.clone(), types.clone()),
         (Some(Err(err)), _) => render! {"An error occurred while loading dexes {err}"},
         (_, Some(Err(err))) => render! {"An error occurred while loading types {err}"},
         _ => render! {"Loading items"},
     }
 }
 
-fn render_dex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) -> Element {
+fn RenderDex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) -> Element {
     let pokedex_entries = dex
         .pokemon_entries
         .iter()
@@ -259,8 +257,8 @@ fn Focus(cx: Scope) -> Element {
 
 async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String) {
     *focus_state.write() = FocusState::Loading;
-    if let Ok(url) = get_images(pokemon_url).await {
-        *focus_state.write() = FocusState::Loaded(url.clone());
+    if let Ok(focus_data) = get_data(pokemon_url).await {
+        *focus_state.write() = FocusState::Loaded(focus_data.clone());
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load image".to_string());
     }
@@ -307,7 +305,7 @@ pub struct PokemonType {
     name: String,
 }
 
-async fn get_images(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
+async fn get_data(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
     let pokemon: FocusItem = reqwest::get(&pokemon_url).await?.json().await?;
     let default = pokemon.sprites.other.official_artwork.front_default;
     let shiny = pokemon.sprites.other.official_artwork.front_shiny;
