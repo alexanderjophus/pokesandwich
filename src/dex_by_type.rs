@@ -203,45 +203,20 @@ fn Focus(cx: Scope) -> Element {
         FocusState::Loaded(focus_data) => {
             let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
             render! {
-                h1 {
-                    "{focus_data.name.clone()} - {focus_data.primary_type.clone()} - {focus_data.secondary_type.clone().unwrap_or_default()}"
-                }
-                b {
-                    "Shiny sandwich: tomato + onion + green pepper + hamburger + 2 * ({TYPES_INFO.get(focus_data.primary_type.as_str()).unwrap().ingredient}"
-                }
+                h1 { class: "text-3xl", "{focus_data.name.clone()}" }
+                p { "{focus_data.primary_type.clone()}" }
                 if let Some(secondary_type) = focus_data.secondary_type.clone() {
-                    rsx!(b {
-                        " or {TYPES_INFO.get(secondary_type.as_str()).unwrap().ingredient}"
+                    rsx!(p {
+                        "{secondary_type}"
                     })
                 }
-                b { ")" }
-                p {
-                    table { border_collapse: "collapse",
-                        thead {
-                            tr { border: "1px solid black",
-                                td { "serebii" }
-                                td {
-                                    "has multiple forms"
-                                    span { title: "this may be incorrect, check serebii to be certain",
-                                        "⚠️"
-                                    }
-                                }
-                            }
-                        }
-                        tbody {
-                            tr {
-                                td { a { href: "{serebii_link}", target: "_blank", "{focus_data.name.clone()}" } }
-                                td {
-                                    if focus_data.has_multiple_forms {
-                                        "yes"
-                                    } else {
-                                        "no"
-                                    }
-                                }
-                            }
-                        }
-                    }
+                b { "Easy 3 star sparkling/encounter/mark sandwich:" }
+                "tomato + onion + green pepper + hamburger + 2 * ({TYPES_INFO.get(focus_data.primary_type.as_str()).unwrap().ingredient}"
+                if let Some(secondary_type) = focus_data.secondary_type.clone() {
+                    rsx!(" or {TYPES_INFO.get(secondary_type.as_str()).unwrap().ingredient}")
                 }
+                b { ")" }
+                p { a { href: "{serebii_link}", target: "_blank", "Serebii link" } }
                 div { display: "flex", flex_direction: "row",
                     img { src: "{focus_data.default_url}", width: "100%" }
                     img {
@@ -251,7 +226,7 @@ fn Focus(cx: Scope) -> Element {
                 }
             }
         }
-        FocusState::Failed(err) => render! {"Failed to load image {err}"},
+        FocusState::Failed(err) => render! {"{err}"},
     }
 }
 
@@ -260,7 +235,7 @@ async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String
     if let Ok(focus_data) = get_data(pokemon_url).await {
         *focus_state.write() = FocusState::Loaded(focus_data.clone());
     } else {
-        *focus_state.write() = FocusState::Failed("Failed to load image".to_string());
+        *focus_state.write() = FocusState::Failed("Failed to load data".to_string());
     }
 }
 

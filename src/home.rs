@@ -31,9 +31,7 @@ pub fn Home(cx: Scope) -> Element {
                     dex.set(event.data.value.clone());
                 },
                 for dex in DEXES.iter() {
-                    option {
-                        value: *dex, "{dex}"
-                    }
+                    option { value: *dex, "{dex}" }
                 }
             }
             select {
@@ -43,15 +41,14 @@ pub fn Home(cx: Scope) -> Element {
                     pokemon_type.set(event.data.value.clone());
                 },
                 for key in TYPES.iter() {
-                    option {
-                        value: *key, "{key}"
-                    }
+                    option { value: *key, "{key}" }
                 }
             }
             button {
                 class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded",
                 onclick: move |_| {
-                    *search_state.write() = SearchState::Set {
+                    *search_state
+                        .write() = SearchState::Set {
                         dex: dex.to_string(),
                         pokemon_type: pokemon_type.to_string(),
                     };
