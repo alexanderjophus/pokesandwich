@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use crate::consts::{BASE_API_URL, TYPES_INFO};
 
-#[inline_props]
+#[component]
 pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
     use_shared_state_provider(cx, || FocusState::Unset);
 
@@ -71,7 +71,7 @@ fn RenderDex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) -
     })
 }
 
-#[inline_props]
+#[component]
 fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
     cx.render(rsx! {
         table { border_collapse: "collapse",
@@ -87,10 +87,11 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
     })
 }
 
-#[inline_props]
+#[component]
 fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
+    let focus_data = use_ref(cx, || None);
 
     cx.render(rsx! {
         tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
@@ -99,9 +100,7 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
                     div {
                         width: "80%",
                         onclick: move |_event| {
-                            use_future(cx, &dex_entry.url, |url| {
-                                load_focus(focus_state.clone(), url.to_string())
-                            });
+                            load_focus(focus_data.clone(), focus_state.clone(), dex_entry.url.to_string())
                         },
                         "{dex_entry.name}"
                     }
@@ -197,7 +196,7 @@ fn Focus(cx: Scope) -> Element {
     let focus_state = use_shared_state::<FocusState>(cx)?;
 
     match &*focus_state.read() {
-        FocusState::Unset => render! {"Hover over a pokemon to preview it here"},
+        FocusState::Unset => render! {"Click on a pokemon to preview it here"},
         FocusState::Loading => render! {"Loading..."},
         FocusState::Loaded(focus_data) => {
             let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
@@ -229,10 +228,21 @@ fn Focus(cx: Scope) -> Element {
     }
 }
 
-async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String) {
+async fn load_focus(
+    focus_data_ref: UseRef<Option<FocusData>>,
+    focus_state: UseSharedState<FocusState>,
+    pokemon_url: String,
+) {
+    //check cache
+    if let Some(data) = focus_data_ref.read().clone() {
+        *focus_state.write() = FocusState::Loaded(data);
+        return;
+    }
+
     *focus_state.write() = FocusState::Loading;
     if let Ok(focus_data) = get_data(pokemon_url).await {
         *focus_state.write() = FocusState::Loaded(focus_data.clone());
+        *focus_data_ref.write() = Some(focus_data);
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load data".to_string());
     }

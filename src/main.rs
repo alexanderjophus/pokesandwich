@@ -31,7 +31,7 @@ pub fn App(cx: Scope) -> Element {
     render! { Router::<Route> {} }
 }
 
-#[inline_props]
+#[component]
 fn NavBar(cx: Scope) -> Element {
     render! {
         nav {
@@ -49,7 +49,7 @@ fn NavBar(cx: Scope) -> Element {
     }
 }
 
-#[inline_props]
+#[component]
 fn PageNotFound(cx: Scope, _route: Vec<String>) -> Element {
     render! {
         h1 { "Page not found" }

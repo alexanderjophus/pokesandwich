@@ -13,7 +13,7 @@ pub enum SearchState {
     Set { dex: String, pokemon_type: String },
 }
 
-#[inline_props]
+#[component]
 pub fn Home(cx: Scope) -> Element {
     use_shared_state_provider(cx, || SearchState::Unset);
     let search_state = use_shared_state::<SearchState>(cx).unwrap();

@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use crate::consts::BASE_API_URL;
 use crate::footer;
 
-#[inline_props]
+#[component]
 pub fn Favourites(cx: Scope) -> Element {
     let faves = use_persistent(cx, "faves", || HashSet::<String>::new());
 
@@ -19,18 +19,18 @@ pub fn Favourites(cx: Scope) -> Element {
     })
 }
 
-#[inline_props]
+#[component]
 fn FavouritePokemon(cx: Scope, pokemon_name: String) -> Element {
     let pokemon_fut = use_future(cx, (), |_| get_pokemon(pokemon_name.to_string()));
 
     match pokemon_fut.value() {
-        Some(Ok(pokemon)) => render! { render_pokemon { pokemon: pokemon.clone() } },
+        Some(Ok(pokemon)) => render! { RenderPokemon { pokemon: pokemon.clone() } },
         _ => render! {"Loading items"},
     }
 }
 
-#[inline_props]
-fn render_pokemon(cx: Scope, pokemon: Pokemon) -> Element {
+#[component]
+fn RenderPokemon(cx: Scope, pokemon: Pokemon) -> Element {
     let pokemon_name = pokemon.name.clone();
     let default_image = pokemon.sprites.other.official_artwork.front_default.clone();
     let shiny_image = pokemon.sprites.other.official_artwork.front_shiny.clone();
