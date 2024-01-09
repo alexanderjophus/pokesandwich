@@ -92,17 +92,16 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
 
-    let fut = use_future(cx, &dex_entry.url, |url| {
-        load_focus(focus_state.clone(), url.to_string())
-    });
     cx.render(rsx! {
         tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
             td {
                 div { display: "flex", flex_direction: "row",
                     div {
                         width: "80%",
-                        onclick: move |_| {
-                            fut.restart();
+                        onclick: move |_event| {
+                            use_future(cx, &dex_entry.url, |url| {
+                                load_focus(focus_state.clone(), url.to_string())
+                            });
                         },
                         "{dex_entry.name}"
                     }
