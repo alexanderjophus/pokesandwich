@@ -91,7 +91,6 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
 fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
     let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
-    let focus_data = use_ref(cx, || None);
 
     cx.render(rsx! {
         tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
@@ -100,7 +99,7 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
                     div {
                         width: "80%",
                         onclick: move |_event| {
-                            load_focus(focus_data.clone(), focus_state.clone(), dex_entry.url.to_string())
+                            load_focus(focus_state.clone(), dex_entry.url.to_string())
                         },
                         "{dex_entry.name}"
                     }
@@ -228,21 +227,10 @@ fn Focus(cx: Scope) -> Element {
     }
 }
 
-async fn load_focus(
-    focus_data_ref: UseRef<Option<FocusData>>,
-    focus_state: UseSharedState<FocusState>,
-    pokemon_url: String,
-) {
-    //check cache
-    if let Some(data) = focus_data_ref.read().clone() {
-        *focus_state.write() = FocusState::Loaded(data);
-        return;
-    }
-
+async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String) {
     *focus_state.write() = FocusState::Loading;
     if let Ok(focus_data) = get_data(pokemon_url).await {
         *focus_state.write() = FocusState::Loaded(focus_data.clone());
-        *focus_data_ref.write() = Some(focus_data);
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load data".to_string());
     }
