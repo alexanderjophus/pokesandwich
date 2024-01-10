@@ -7,17 +7,8 @@ use crate::footer;
 static DEFAULT_DEX: &str = "paldea";
 static DEFAULT_TYPE: &str = "normal";
 
-#[derive(Clone, Debug)]
-pub enum SearchState {
-    Unset,
-    Set { dex: String, pokemon_type: String },
-}
-
 #[component]
 pub fn Home(cx: Scope) -> Element {
-    use_shared_state_provider(cx, || SearchState::Unset);
-    let search_state = use_shared_state::<SearchState>(cx).unwrap();
-
     let dex = use_state(cx, || DEFAULT_DEX.to_string());
     let pokemon_type = use_state(cx, || DEFAULT_TYPE.to_string());
 
@@ -44,23 +35,10 @@ pub fn Home(cx: Scope) -> Element {
                     option { value: *key, "{key}" }
                 }
             }
-            button {
-                class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded",
-                onclick: move |_| {
-                    *search_state
-                        .write() = SearchState::Set {
-                        dex: dex.to_string(),
-                        pokemon_type: pokemon_type.to_string(),
-                    };
-                },
-                "Refresh"
-            }
         }
-        if let SearchState::Set { dex, pokemon_type } = search_state.read().clone() {
-            render!(
-                dex_by_type::DexByType { dex: dex, pokemon_type: pokemon_type }
-            )
-        }
+        render!(
+            dex_by_type::DexByType { dex: dex.to_string(), pokemon_type: pokemon_type.to_string() }
+        )
         footer::Footer {}
     })
 }
