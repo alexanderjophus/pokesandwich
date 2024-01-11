@@ -119,6 +119,7 @@ pub struct FocusData {
     pub default_url: String,
     pub shiny_url: Option<String>,
     pub types: Vec<String>,
+    pub capture_rate: i64,
 }
 
 #[derive(Clone)]
@@ -146,7 +147,10 @@ fn Focus(cx: Scope) -> Element {
                 "tomato + onion + green pepper + hamburger + 2 * ("
                     focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or ")
                 ")"
-                p { a { href: "{serebii_link}", target: "_blank", "Serebii link" } }
+                p {
+                    a { href: "{serebii_link}", target: "_blank", "Serebii" }
+                    " | Capture Rate: {focus_data.capture_rate}"
+                }
                 div { display: "flex", flex_direction: "row",
                     img { src: "{focus_data.default_url}", width: "100%" }
                     img {
@@ -200,9 +204,7 @@ async fn perform_gql_query(
         .json()
         .await?;
 
-    let result = resp.data.ok_or("missing response data")?.pokemon_v2_pokemon;
-
-    Ok(result)
+    Ok(resp.data.ok_or("missing response data")?.pokemon_v2_pokemon)
 }
 
 #[derive(Deserialize, Default)]
@@ -230,8 +232,15 @@ struct OfficialArtwork {
 async fn get_data(
     pokemon: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon,
 ) -> Result<FocusData, reqwest::Error> {
-    let sprites = &pokemon.pokemon_v2_pokemonsprites[0];
+    let capture_rate = pokemon
+        .pokemon_v2_pokemonspecy
+        .clone()
+        .unwrap_or_default()
+        .capture_rate
+        .unwrap_or_default();
+
     // wtf?
+    let sprites = &pokemon.pokemon_v2_pokemonsprites[0];
     let sprites = serde_json::to_string(&sprites).unwrap_or_default();
     let sprites: SpriteResp = serde_json::from_str(&sprites).unwrap_or_default();
 
@@ -246,5 +255,6 @@ async fn get_data(
         default_url: sprites.sprites.other.official_artwork.front_default,
         shiny_url: sprites.sprites.other.official_artwork.front_shiny,
         types,
+        capture_rate,
     })
 }
