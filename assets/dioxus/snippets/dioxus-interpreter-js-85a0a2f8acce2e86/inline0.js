@@ -169,19 +169,7 @@ let m,p,ls,d,t,op,i,e,z,metaflags;
       function truthy(val) {
         return val === "true" || val === true;
       }
-    const ns_cache = [];
-                    let ns_cache_tmp1, ns_cache_tmp2;
-                    function get_ns_cache() {
-                        ns_cache_tmp2 = u8buf[u8bufp++];
-                        if(ns_cache_tmp2 & 128){
-                            ns_cache_tmp1=s.substring(sp,sp+=u8buf[u8bufp++]);
-                            ns_cache[ns_cache_tmp2&4294967167]=ns_cache_tmp1;
-                            return ns_cache_tmp1;
-                        }
-                        else{
-                            return ns_cache[ns_cache_tmp2&4294967167];
-                        }
-                    }let s = "";let lsp,sp,sl; let c = new TextDecoder();let u32buf,u32bufp;const evt = [];
+    const evt = [];
                     let evt_tmp1, evt_tmp2;
                     function get_evt() {
                         evt_tmp2 = u8buf[u8bufp++];
@@ -193,7 +181,7 @@ let m,p,ls,d,t,op,i,e,z,metaflags;
                         else{
                             return evt[evt_tmp2&4294967167];
                         }
-                    }let u8buf,u8bufp;const attr = [];
+                    }let s = "";let lsp,sp,sl; let c = new TextDecoder();let u32buf,u32bufp;let u8buf,u8bufp;const attr = [];
                     let attr_tmp1, attr_tmp2;
                     function get_attr() {
                         attr_tmp2 = u8buf[u8bufp++];
@@ -205,8 +193,20 @@ let m,p,ls,d,t,op,i,e,z,metaflags;
                         else{
                             return attr[attr_tmp2&4294967167];
                         }
+                    }const ns_cache = [];
+                    let ns_cache_tmp1, ns_cache_tmp2;
+                    function get_ns_cache() {
+                        ns_cache_tmp2 = u8buf[u8bufp++];
+                        if(ns_cache_tmp2 & 128){
+                            ns_cache_tmp1=s.substring(sp,sp+=u8buf[u8bufp++]);
+                            ns_cache[ns_cache_tmp2&4294967167]=ns_cache_tmp1;
+                            return ns_cache_tmp1;
+                        }
+                        else{
+                            return ns_cache[ns_cache_tmp2&4294967167];
+                        }
                     }
-            let field,ns,id,len,ptr,event_name,value,bubbles;
+            let field,len,value,id,bubbles,event_name,ptr,ns;
             export function create(r){
                 d=r;
             }
