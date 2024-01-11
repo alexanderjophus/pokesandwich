@@ -180,6 +180,7 @@ async fn load_focus(
 )]
 pub struct PokeApiPokemon;
 
+#[warn(non_camel_case_types)]
 type jsonb = serde_json::Map<String, serde_json::Value>;
 
 async fn perform_gql_query(
