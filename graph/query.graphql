@@ -1,0 +1,14 @@
+query PokeApiPokemon($pokemon_type: String!, $dex: String!) {
+  pokemon_v2_pokemon(where: {_and: {pokemon_v2_pokemonspecy: {pokemon_v2_pokemondexnumbers: {pokemon_v2_pokedex: {name: {_eq: $dex}}}}, pokemon_v2_pokemontypes: {pokemon_v2_type: {name: {_eq: $pokemon_type}}}}}, order_by: {order:asc}) {
+    name
+    order
+    pokemon_v2_pokemonsprites {
+      sprites
+    }
+    pokemon_v2_pokemontypes {
+      pokemon_v2_type {
+        name
+      }
+    }
+  }
+}

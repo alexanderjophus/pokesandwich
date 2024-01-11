@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 use dioxus_storage::use_persistent;
+use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::error::Error;
 
 use crate::consts::{BASE_API_URL, TYPES_INFO};
 
@@ -26,61 +28,41 @@ struct SearchProps {
 }
 
 fn Search(cx: Scope<SearchProps>) -> Element {
-    let dexes_future = use_future(cx, &cx.props.clone(), |_| {
-        get_pokedex(cx.props.dex.to_string())
-    });
-    let pokemon_types = use_future(cx, &cx.props.clone(), |_| {
-        get_types(cx.props.pokemon_type.to_string())
+    let pokemon = use_future(cx, &cx.props.clone(), |_| {
+        let variables = poke_api_pokemon::Variables {
+            dex: cx.props.dex.to_string(),
+            pokemon_type: cx.props.pokemon_type.to_string(),
+        };
+        perform_gql_query(variables)
     });
 
-    match (dexes_future.value(), pokemon_types.value()) {
-        (Some(Ok(dex)), Some(Ok(types))) => RenderDex(cx, dex.clone(), types.clone()),
-        (Some(Err(err)), _) => render! {"An error occurred while loading dexes {err}"},
-        (_, Some(Err(err))) => render! {"An error occurred while loading types {err}"},
+    match pokemon.value() {
+        Some(Ok(pokemon)) => RenderDex(cx, pokemon.clone()),
+        Some(Err(err)) => render! {"An error occurred while loading {err}"},
         _ => render! {"Loading items"},
     }
 }
 
-fn RenderDex(cx: Scope<SearchProps>, dex: Pokedex, types: PokemonTypeResponse) -> Element {
-    let pokedex_entries = dex
-        .pokemon_entries
-        .iter()
-        .filter(|entry| {
-            types
-                .pokemon
-                .iter()
-                .any(|pokemon| pokemon.pokemon.name == entry.pokemon_species.name)
-        })
-        .map(|entry| DexItem {
-            id: entry.entry_number,
-            name: entry.pokemon_species.name.clone(),
-            url: types
-                .pokemon
-                .iter()
-                .find(|pokemon| pokemon.pokemon.name == entry.pokemon_species.name)
-                .unwrap()
-                .pokemon
-                .url
-                .clone(),
-        })
-        .collect::<Vec<DexItem>>();
-
+fn RenderDex(
+    cx: Scope<SearchProps>,
+    pokemon: Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>,
+) -> Element {
     cx.render(rsx! {
         div { overflow: "hidden", background_color: TYPES_INFO.get(cx.props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{cx.props.pokemon_type.clone()}.svg" } }
-        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { dex_entries: pokedex_entries } }
+        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { pokemon: pokemon } }
     })
 }
 
 #[component]
-fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
+fn DexTable(cx: Scope, pokemon: Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>) -> Element {
     cx.render(rsx! {
         table { border_collapse: "collapse",
             thead {
                 tr { th { "Pokemon Name" } }
             }
             tbody {
-                for entry in dex_entries.iter() {
-                    DexRow { dex_entry: entry.clone() }
+                for entry in pokemon.iter() {
+                    DexRow { entry: entry.clone() }
                 }
             }
         }
@@ -88,7 +70,7 @@ fn DexTable(cx: Scope, dex_entries: Vec<DexItem>) -> Element {
 }
 
 #[component]
-fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
+fn DexRow(cx: Scope, entry: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon) -> Element {
     let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
 
@@ -99,61 +81,29 @@ fn DexRow(cx: Scope, dex_entry: DexItem) -> Element {
                     div {
                         width: "80%",
                         onclick: move |_event| {
-                            load_focus(focus_state.clone(), dex_entry.url.to_string())
+                            load_focus(focus_state.clone(), entry.clone())
                         },
-                        "{dex_entry.name}"
+                        "{entry.name}"
                     }
                     div {
                         width: "20%",
                         onclick: move |_| {
-                            if fav.get().contains(&dex_entry.name) {
+                            if fav.get().contains(&entry.name) {
                                 fav.modify(|faves| {
-                                    faves.remove(&dex_entry.name);
+                                    faves.remove(&entry.name);
                                 });
                             } else {
                                 fav.modify(|faves| {
-                                    faves.insert(dex_entry.name.clone());
+                                    faves.insert(entry.name.clone());
                                 });
                             }
                         },
-                        i { class: "fa fa-heart", color: if fav.get().contains(&dex_entry.name) { "red" } else { "grey" } }
+                        i { class: "fa fa-heart", color: if fav.get().contains(&entry.name) { "red" } else { "grey" } }
                     }
                 }
             }
         }
     })
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Pokedex {
-    pokemon_entries: Vec<PokemonEntry>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonEntry {
-    entry_number: i64,
-    pokemon_species: PokemonSpecies,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonSpecies {
-    name: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonTypeResponse {
-    pokemon: Vec<Pokemon>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Pokemon {
-    pokemon: PokemonReference,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonReference {
-    url: String,
-    name: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -163,27 +113,15 @@ pub struct DexItem {
     pub url: String,
 }
 
-pub async fn get_pokedex(dex: String) -> Result<Pokedex, reqwest::Error> {
-    let url = format!("{}pokedex/{}", BASE_API_URL, dex);
-    reqwest::get(&url).await?.json().await
-}
-
-pub async fn get_types(poketype: String) -> Result<PokemonTypeResponse, reqwest::Error> {
-    let url = format!("{}type/{}", BASE_API_URL, poketype);
-    reqwest::get(&url).await?.json().await
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct FocusData {
     pub name: String,
     pub default_url: String,
     pub shiny_url: Option<String>,
-    pub primary_type: String,
-    pub secondary_type: Option<String>,
-    pub has_multiple_forms: bool,
+    pub types: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum FocusState {
     Unset,
     Loading,
@@ -201,18 +139,13 @@ fn Focus(cx: Scope) -> Element {
             let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
             render! {
                 h1 { class: "text-3xl", "{focus_data.name.clone()}" }
-                p { "{focus_data.primary_type.clone()}" }
-                if let Some(secondary_type) = focus_data.secondary_type.clone() {
-                    rsx!(p {
-                        "{secondary_type}"
-                    })
+                div { display: "flex", flex_direction: "row",
+                    focus_data.types.join(" + ")
                 }
-                b { "Easy 3 star sparkling/encounter/mark sandwich:" }
-                "tomato + onion + green pepper + hamburger + 2 * ({TYPES_INFO.get(focus_data.primary_type.as_str()).unwrap().ingredient}"
-                if let Some(secondary_type) = focus_data.secondary_type.clone() {
-                    rsx!(" or {TYPES_INFO.get(secondary_type.as_str()).unwrap().ingredient}")
-                }
-                b { ")" }
+                b { "Easy 3 star sparkling/encounter/title sandwich:" }
+                "tomato + onion + green pepper + hamburger + 2 * ("
+                    focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or ")
+                ")"
                 p { a { href: "{serebii_link}", target: "_blank", "Serebii link" } }
                 div { display: "flex", flex_direction: "row",
                     img { src: "{focus_data.default_url}", width: "100%" }
@@ -227,69 +160,90 @@ fn Focus(cx: Scope) -> Element {
     }
 }
 
-async fn load_focus(focus_state: UseSharedState<FocusState>, pokemon_url: String) {
+async fn load_focus(
+    focus_state: UseSharedState<FocusState>,
+    pokemon: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon,
+) {
     *focus_state.write() = FocusState::Loading;
-    if let Ok(focus_data) = get_data(pokemon_url).await {
+    if let Ok(focus_data) = get_data(pokemon.clone()).await {
         *focus_state.write() = FocusState::Loaded(focus_data.clone());
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load data".to_string());
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FocusItem {
-    name: String,
-    forms: Vec<Form>,
-    sprites: Sprite,
-    types: Vec<Type>,
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "graph/schema.graphql",
+    query_path = "graph/query.graphql",
+    response_derives = "PartialEq, Clone, Default, Debug, Serialize, Deserialize"
+)]
+pub struct PokeApiPokemon;
+
+type jsonb = serde_json::Map<String, serde_json::Value>;
+
+async fn perform_gql_query(
+    variables: poke_api_pokemon::Variables,
+) -> Result<Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>, Box<dyn Error>> {
+    let request_body = PokeApiPokemon::build_query(variables);
+
+    let gql_addr = BASE_API_URL;
+
+    let client = reqwest::Client::new();
+    let resp: Response<poke_api_pokemon::ResponseData> = client
+        .post(format!("{gql_addr}"))
+        .json(&request_body)
+        .send()
+        .await
+        .expect("failed to send request")
+        .json()
+        .await?;
+
+    let result = resp.data.ok_or("missing response data")?.pokemon_v2_pokemon;
+
+    Ok(result)
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Form {
-    name: String,
+#[derive(Deserialize, Default)]
+struct SpriteResp {
+    sprites: Sprites,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Sprite {
+#[derive(Deserialize, Default)]
+struct Sprites {
     other: Other,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Other {
+#[derive(Deserialize, Default)]
+struct Other {
     #[serde(rename = "official-artwork")]
     official_artwork: OfficialArtwork,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct OfficialArtwork {
+#[derive(Deserialize, Default)]
+struct OfficialArtwork {
     front_default: String,
     front_shiny: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Type {
-    #[serde(rename = "type")]
-    pokemon_type: PokemonType,
-}
+async fn get_data(
+    pokemon: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon,
+) -> Result<FocusData, reqwest::Error> {
+    let sprites = &pokemon.pokemon_v2_pokemonsprites[0];
+    // wtf?
+    let sprites = serde_json::to_string(&sprites).unwrap_or_default();
+    let sprites: SpriteResp = serde_json::from_str(&sprites).unwrap_or_default();
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PokemonType {
-    name: String,
-}
-
-async fn get_data(pokemon_url: String) -> Result<FocusData, reqwest::Error> {
-    let pokemon: FocusItem = reqwest::get(&pokemon_url).await?.json().await?;
-    let default = pokemon.sprites.other.official_artwork.front_default;
-    let shiny = pokemon.sprites.other.official_artwork.front_shiny;
-    let primary = pokemon.types[0].pokemon_type.name.clone();
-    let secondary = pokemon.types.get(1).map(|t| t.pokemon_type.name.clone());
+    let types = pokemon
+        .pokemon_v2_pokemontypes
+        .iter()
+        .map(|t| t.pokemon_v2_type.clone().unwrap_or_default().name.clone())
+        .collect();
 
     Ok(FocusData {
         name: pokemon.name,
-        default_url: default,
-        shiny_url: shiny,
-        primary_type: primary,
-        secondary_type: secondary,
-        has_multiple_forms: pokemon.forms.len() > 1,
+        default_url: sprites.sprites.other.official_artwork.front_default,
+        shiny_url: sprites.sprites.other.official_artwork.front_shiny,
+        types,
     })
 }

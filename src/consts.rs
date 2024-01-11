@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-pub static BASE_API_URL: &str = "https://pokeapi.co/api/v2/";
+pub static BASE_API_URL: &str = "https://beta.pokeapi.co/graphql/v1beta";
 
 pub static DEXES: [&str; 3] = ["paldea", "kitakami", "blueberry"];
 
