@@ -67,7 +67,7 @@ fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
                         oninput: move |_| {
                             shiny_charm.set(!shiny_charm.get());
                         },
-                        checked: *shiny_charm.get(),
+                        checked: *shiny_charm.get()
                     }
                 }
                 p {
@@ -77,7 +77,7 @@ fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
                             sandwich.set(e.data.value.parse::<i64>().unwrap_or_default());
                         },
                         for i in [0, 1, 3] {
-                            option { value: "{i}", b {"{i}"} }
+                            option { value: "{i}", b { "{i}" } }
                         }
                     }
                 }
@@ -99,7 +99,11 @@ fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
                     }
                 }
                 p {
-                    "Odds:" b { "{odds * 100.0:.3}%" } " | Rolls:" b { "{rolls}" }
+                    "Odds:"
+                    b { "{odds * 100.0:.3}%" }
+                    " | Rolls:"
+                    b { "{rolls}" }
+                    " of 4096"
                 }
             }
         }
