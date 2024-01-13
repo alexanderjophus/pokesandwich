@@ -11,6 +11,7 @@ mod footer;
 use footer::Footer;
 mod home;
 use home::Home;
+mod focus;
 
 #[derive(Routable, Clone)]
 #[rustfmt::skip]
