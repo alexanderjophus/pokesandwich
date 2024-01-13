@@ -78,9 +78,7 @@ fn DexRow(cx: Scope, entry: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon) ->
                 div { display: "flex", flex_direction: "row",
                     div {
                         width: "80%",
-                        onclick: move |_event| {
-                            load_focus(focus_state.clone(), entry.clone())
-                        },
+                        onclick: move |_event| { load_focus(focus_state.clone(), entry.clone()) },
                         "{entry.name}"
                     }
                     div {

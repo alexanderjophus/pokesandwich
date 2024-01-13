@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{html::switch, prelude::*};
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -29,31 +29,102 @@ pub fn Focus(cx: Scope) -> Element {
         FocusState::Unset => render! {"Click on a pokemon to preview it here"},
         FocusState::Loading => render! {"Loading..."},
         FocusState::Loaded(focus_data) => {
-            let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
-            render! {
+            render! { FocusDetail { focus_data: focus_data.clone() } }
+        }
+        FocusState::Failed(err) => render! {"{err}"},
+    }
+}
+
+#[component]
+fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
+    let mut chain = use_state(cx, || 0);
+    let sandwich = use_state(cx, || 0);
+    let shiny_charm = use_state(cx, || false);
+    let (odds, rolls) = shiny_odds(*chain.get(), *sandwich.get(), *shiny_charm.get());
+
+    let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
+    render! {
+        div { display: "flex", flex_direction: "row",
+            div { margin: "10px", width: "50%",
                 h1 { class: "text-3xl", "{focus_data.name.clone()}" }
-                div { display: "flex", flex_direction: "row",
-                    focus_data.types.join(" + ")
-                }
+                div { display: "flex", flex_direction: "row", focus_data.types.join(" + ") }
                 b { "Easy 3 star sparkling/encounter/title sandwich:" }
-                "tomato + onion + green pepper + hamburger + 2 * ("
-                    focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or ")
-                ")"
+                p {
+                    "tomato + onion + green pepper + hamburger + 2 * ("
+                    focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or "),
+                    ")"
+                }
                 p {
                     a { href: "{serebii_link}", target: "_blank", "Serebii" }
                     " | Capture Rate: {focus_data.capture_rate}"
                 }
-                div { display: "flex", flex_direction: "row",
-                    img { src: "{focus_data.default_url}", width: "100%" }
-                    img {
-                        src: "{focus_data.shiny_url.clone().unwrap_or_default()}",
-                        width: "100%"
+            }
+            div { margin: "10px", width: "50%",
+                p {
+                    rsx! { "Shiny Charm: " },
+                    input {
+                        r#type: "checkbox",
+                        oninput: move |_| {
+                            shiny_charm.set(!shiny_charm.get());
+                        },
+                        checked: *shiny_charm.get(),
                     }
+                }
+                p {
+                    rsx! { "Sandwich Level: " },
+                    select {
+                        oninput: move |e| {
+                            sandwich.set(e.data.value.parse::<i64>().unwrap_or_default());
+                        },
+                        for i in [0, 1, 3] {
+                            option { value: "{i}", b {"{i}"} }
+                        }
+                    }
+                }
+                p {
+                    button {
+                        style: "margin-right: 10px;",
+                        onclick: move |_| {
+                            chain += 1;
+                        },
+                        "Chain +"
+                    }
+                    rsx! { b {"{chain}" } },
+                    button {
+                        style: "margin-left: 10px;",
+                        onclick: move |_| {
+                            chain *= 0;
+                        },
+                        "Chain Reset"
+                    }
+                }
+                p {
+                    "Odds:" b { "{odds * 100.0:.3}%" } " | Rolls:" b { "{rolls}" }
                 }
             }
         }
-        FocusState::Failed(err) => render! {"{err}"},
+        div { display: "flex", flex_direction: "row",
+            img { src: "{focus_data.default_url}", width: "100%" }
+            img {
+                src: "{focus_data.shiny_url.clone().unwrap_or_default()}",
+                width: "100%"
+            }
+        }
     }
+}
+
+fn shiny_odds(chain: i64, sandwich_level: i64, shiny_charm: bool) -> (f64, i64) {
+    let mut rolls = sandwich_level + 1;
+    match chain {
+        30..=59 => rolls += 1,
+        60..=i64::MAX => rolls += 2,
+        _ => {}
+    };
+    if shiny_charm {
+        rolls += 2;
+    };
+    let odds = 1.0 - (4095.0 / 4096.0f64).powi(rolls as i32);
+    (odds, rolls)
 }
 
 pub async fn load_focus(

@@ -38,7 +38,7 @@ pub fn Home(cx: Scope) -> Element {
         }
         render!(
             dex_by_type::DexByType { dex: dex.to_string(), pokemon_type: pokemon_type.to_string() }
-        )
+        ),
         footer::Footer {}
     })
 }
