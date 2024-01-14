@@ -1,4 +1,4 @@
-use dioxus::{html::switch, prelude::*};
+use dioxus::prelude::*;
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;

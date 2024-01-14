@@ -12,6 +12,7 @@ use footer::Footer;
 mod home;
 use home::Home;
 mod focus;
+mod google_analytics;
 
 #[derive(Routable, Clone)]
 #[rustfmt::skip]
@@ -29,7 +30,10 @@ enum Route {
 }
 
 pub fn App(cx: Scope) -> Element {
-    render! { Router::<Route> {} }
+    render! {
+        google_analytics::GoogleAnalytics { config: "G-HJKW1YL1C9" }
+        Router::<Route> {}
+    }
 }
 
 #[component]
