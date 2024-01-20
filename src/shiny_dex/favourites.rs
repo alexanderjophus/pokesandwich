@@ -3,8 +3,8 @@ use dioxus_storage::use_persistent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::consts::BASE_API_URL;
 use crate::footer;
+use crate::BASE_REST_API_URL;
 
 #[component]
 pub fn Favourites(cx: Scope) -> Element {
@@ -25,6 +25,7 @@ fn FavouritePokemon(cx: Scope, pokemon_name: String) -> Element {
 
     match pokemon_fut.value() {
         Some(Ok(pokemon)) => render! { RenderPokemon { pokemon: pokemon.clone() } },
+        Some(Err(err)) => render! {"An error occurred while loading {err}"},
         _ => render! {"Loading items"},
     }
 }
@@ -68,6 +69,7 @@ pub struct OfficialArtwork {
 }
 
 async fn get_pokemon(name: String) -> Result<Pokemon, reqwest::Error> {
-    let url = format!("{}pokemon/{}", BASE_API_URL, name);
+    log::info!("Fetching pokemon {}", name);
+    let url = format!("{}/pokemon/{}", BASE_REST_API_URL, name);
     reqwest::get(&url).await?.json().await
 }

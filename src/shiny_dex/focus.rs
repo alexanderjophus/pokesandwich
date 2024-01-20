@@ -3,7 +3,8 @@ use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-use crate::consts::{BASE_API_URL, TYPES_INFO};
+use crate::shiny_dex::TYPES_INFO;
+use crate::BASE_GRAPHQL_API_URL;
 
 #[derive(Clone)]
 pub enum FocusState {
@@ -133,7 +134,7 @@ fn shiny_odds(chain: i64, sandwich_level: i64, shiny_charm: bool) -> (f64, i64) 
 
 pub async fn load_focus(
     focus_state: UseSharedState<FocusState>,
-    pokemon: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon,
+    pokemon: dex_by_type::DexByTypePokemonV2Pokemon,
 ) {
     *focus_state.write() = FocusState::Loading;
     if let Ok(focus_data) = get_data(pokemon.clone()).await {
@@ -149,20 +150,20 @@ pub async fn load_focus(
     query_path = "graph/query.graphql",
     response_derives = "PartialEq, Clone, Default, Debug, Serialize, Deserialize"
 )]
-pub struct PokeApiPokemon;
+pub struct DexByType;
 
 #[allow(non_camel_case_types)]
 type jsonb = serde_json::Map<String, serde_json::Value>;
 
 pub async fn perform_gql_query(
-    variables: poke_api_pokemon::Variables,
-) -> Result<Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>, Box<dyn Error>> {
-    let request_body = PokeApiPokemon::build_query(variables);
+    variables: dex_by_type::Variables,
+) -> Result<Vec<dex_by_type::DexByTypePokemonV2Pokemon>, Box<dyn Error>> {
+    let request_body = DexByType::build_query(variables);
 
-    let gql_addr = BASE_API_URL;
+    let gql_addr = BASE_GRAPHQL_API_URL;
 
     let client = reqwest::Client::new();
-    let resp: Response<poke_api_pokemon::ResponseData> = client
+    let resp: Response<dex_by_type::ResponseData> = client
         .post(format!("{gql_addr}"))
         .json(&request_body)
         .send()
@@ -197,7 +198,7 @@ struct OfficialArtwork {
 }
 
 async fn get_data(
-    pokemon: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon,
+    pokemon: dex_by_type::DexByTypePokemonV2Pokemon,
 ) -> Result<FocusData, reqwest::Error> {
     let capture_rate = pokemon
         .pokemon_v2_pokemonspecy

@@ -14,7 +14,7 @@ out_dir = "site"
 [web.app]
 
 # HTML title tag content
-title = "Pokesandwich | An open source Pokedex"
+title = "PokéAssistant | An open source Pokémon SV helper tool"
 
 # include `assets` in web platform
 [web.resource]

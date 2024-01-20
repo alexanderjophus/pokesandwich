@@ -3,16 +3,16 @@ use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 use log::LevelFilter;
 
-mod consts;
-mod dex_by_type;
-mod favourites;
-use favourites::Favourites;
-mod footer;
-use footer::Footer;
 mod home;
 use home::Home;
-mod focus;
+mod footer;
+use footer::Footer;
+mod shiny_dex;
+use shiny_dex::prelude::*;
 mod google_analytics;
+
+pub static BASE_GRAPHQL_API_URL: &str = "https://beta.pokeapi.co/graphql/v1beta";
+pub static BASE_REST_API_URL: &str = "https://pokeapi.co/api/v2";
 
 #[derive(Routable, Clone)]
 #[rustfmt::skip]
@@ -20,8 +20,12 @@ enum Route {
     #[layout(NavBar)]
         #[route("/")]
         Home {},
-        #[route("/favourites")]
-        Favourites {},
+        #[nest("/shiny")]
+            #[route("/")]
+            ShinyDex {},
+            #[route("/favourites")]
+            Favourites {},
+        #[end_nest]
     #[end_layout]
     #[route("/:.._route")]
     PageNotFound {
@@ -42,13 +46,13 @@ fn NavBar(cx: Scope) -> Element {
         nav {
             display: "flex",
             flex_direction: "row",
-            justify_content: "space-between",
+            justify_content: "space-evenly",
             align_items: "center",
             background_color: "grey",
             color: "white",
             padding: "10px",
-            Link { to: "/", "Pokédex" }
-            Link { to: "/favourites", "Favourites" }
+            Link { to: "/", "Home" }
+            Link { to: "/shiny", "Shiny Dex" }
         }
         Outlet::<Route> {}
     }

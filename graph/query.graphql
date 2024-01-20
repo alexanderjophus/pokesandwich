@@ -1,4 +1,4 @@
-query PokeApiPokemon($pokemon_type: String!, $dex: String!) {
+query DexByType($pokemon_type: String!, $dex: String!) {
   pokemon_v2_pokemon(where: {_and: {pokemon_v2_pokemonspecy: {pokemon_v2_pokemondexnumbers: {pokemon_v2_pokedex: {name: {_eq: $dex}}}}, pokemon_v2_pokemontypes: {pokemon_v2_type: {name: {_eq: $pokemon_type}}}, name: {_nregex: ".*-(gmax|mega|terastal|stellar|hisui|starter|totem)"}, order: {_gt: 0}}}, order_by: {order: asc}) {
     name
     order
@@ -13,5 +13,11 @@ query PokeApiPokemon($pokemon_type: String!, $dex: String!) {
         name
       }
     }
+  }
+}
+
+query PokemonByMoveAndAbility {
+  pokemon_v2_pokemon(where: {_and: {pokemon_v2_pokemonmoves: {pokemon_v2_move: {name: {_regex: "thunder"}}}, pokemon_v2_pokemonabilities: {pokemon_v2_ability: {name: {_regex: "drizzle"}}}}}) {
+    name
   }
 }

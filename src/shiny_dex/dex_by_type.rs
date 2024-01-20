@@ -2,8 +2,8 @@ use dioxus::prelude::*;
 use dioxus_storage::use_persistent;
 use std::collections::HashSet;
 
-use crate::consts::TYPES_INFO;
-use crate::focus::{load_focus, perform_gql_query, poke_api_pokemon, Focus, FocusState};
+use crate::shiny_dex::focus::{dex_by_type, load_focus, perform_gql_query, Focus, FocusState};
+use crate::shiny_dex::TYPES_INFO;
 
 #[component]
 pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
@@ -27,7 +27,7 @@ struct SearchProps {
 
 fn Search(cx: Scope<SearchProps>) -> Element {
     let pokemon = use_future(cx, &cx.props.clone(), |_| {
-        let variables = poke_api_pokemon::Variables {
+        let variables = dex_by_type::Variables {
             dex: cx.props.dex.to_string(),
             pokemon_type: cx.props.pokemon_type.to_string(),
         };
@@ -43,7 +43,7 @@ fn Search(cx: Scope<SearchProps>) -> Element {
 
 fn RenderDex(
     cx: Scope<SearchProps>,
-    pokemon: Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>,
+    pokemon: Vec<dex_by_type::DexByTypePokemonV2Pokemon>,
 ) -> Element {
     cx.render(rsx! {
         div { overflow: "hidden", background_color: TYPES_INFO.get(cx.props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{cx.props.pokemon_type.clone()}.svg" } }
@@ -52,7 +52,7 @@ fn RenderDex(
 }
 
 #[component]
-fn DexTable(cx: Scope, pokemon: Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon>) -> Element {
+fn DexTable(cx: Scope, pokemon: Vec<dex_by_type::DexByTypePokemonV2Pokemon>) -> Element {
     cx.render(rsx! {
         table { border_collapse: "collapse",
             thead {
@@ -68,7 +68,7 @@ fn DexTable(cx: Scope, pokemon: Vec<poke_api_pokemon::PokeApiPokemonPokemonV2Pok
 }
 
 #[component]
-fn DexRow(cx: Scope, entry: poke_api_pokemon::PokeApiPokemonPokemonV2Pokemon) -> Element {
+fn DexRow(cx: Scope, entry: dex_by_type::DexByTypePokemonV2Pokemon) -> Element {
     let fav = use_persistent(cx, "faves", || HashSet::new());
     let focus_state = use_shared_state::<FocusState>(cx).unwrap();
 
