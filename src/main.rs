@@ -9,6 +9,8 @@ mod footer;
 use footer::Footer;
 mod shiny_dex;
 use shiny_dex::prelude::*;
+mod pokemon_finder;
+use pokemon_finder::prelude::*;
 mod google_analytics;
 
 pub static BASE_GRAPHQL_API_URL: &str = "https://beta.pokeapi.co/graphql/v1beta";
@@ -26,6 +28,9 @@ enum Route {
             #[route("/favourites")]
             Favourites {},
         #[end_nest]
+        #[nest("/finder")]
+            #[route("/")]
+            PokemonFinder {},
     #[end_layout]
     #[route("/:.._route")]
     PageNotFound {
@@ -53,6 +58,7 @@ fn NavBar(cx: Scope) -> Element {
             padding: "10px",
             Link { to: "/", "Home" }
             Link { to: "/shiny", "Shiny Dex" }
+            Link { to: "/finder", "Pokémon Finder" span { color: "red", " (WIP)" } }
         }
         Outlet::<Route> {}
     }

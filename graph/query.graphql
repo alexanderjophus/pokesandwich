@@ -16,8 +16,20 @@ query DexByType($pokemon_type: String!, $dex: String!) {
   }
 }
 
-query PokemonByMoveAndAbility {
-  pokemon_v2_pokemon(where: {_and: {pokemon_v2_pokemonmoves: {pokemon_v2_move: {name: {_regex: "thunder"}}}, pokemon_v2_pokemonabilities: {pokemon_v2_ability: {name: {_regex: "drizzle"}}}}}) {
+query Finder($move_name: String!, $ability_name: String!) {
+  pokemon_v2_pokemon(where: {_and: {pokemon_v2_pokemonmoves: {pokemon_v2_move: {name: {_regex: $move_name}}}, pokemon_v2_pokemonabilities: {pokemon_v2_ability: {name: {_regex: $ability_name}}}}}) {
+    name
+    pokemon_v2_pokemonsprites {
+      sprites
+    }
+  }
+}
+
+query MovesAndAbilities {
+  pokemon_v2_move {
+    name
+  }
+  pokemon_v2_ability {
     name
   }
 }

@@ -175,28 +175,6 @@ pub async fn perform_gql_query(
     Ok(resp.data.ok_or("missing response data")?.pokemon_v2_pokemon)
 }
 
-#[derive(Deserialize, Default)]
-struct SpriteResp {
-    sprites: Sprites,
-}
-
-#[derive(Deserialize, Default)]
-struct Sprites {
-    other: Other,
-}
-
-#[derive(Deserialize, Default)]
-struct Other {
-    #[serde(rename = "official-artwork")]
-    official_artwork: OfficialArtwork,
-}
-
-#[derive(Deserialize, Default)]
-struct OfficialArtwork {
-    front_default: String,
-    front_shiny: Option<String>,
-}
-
 async fn get_data(
     pokemon: dex_by_type::DexByTypePokemonV2Pokemon,
 ) -> Result<FocusData, reqwest::Error> {
@@ -207,10 +185,12 @@ async fn get_data(
         .capture_rate
         .unwrap_or_default();
 
-    // wtf?
-    let sprites = &pokemon.pokemon_v2_pokemonsprites[0];
-    let sprites = serde_json::to_string(&sprites).unwrap_or_default();
-    let sprites: SpriteResp = serde_json::from_str(&sprites).unwrap_or_default();
+    let sprites = &pokemon.pokemon_v2_pokemonsprites[0]
+        .sprites
+        .get("other")
+        .unwrap()
+        .get("official-artwork")
+        .unwrap();
 
     let types = pokemon
         .pokemon_v2_pokemontypes
@@ -220,8 +200,15 @@ async fn get_data(
 
     Ok(FocusData {
         name: pokemon.name,
-        default_url: sprites.sprites.other.official_artwork.front_default,
-        shiny_url: sprites.sprites.other.official_artwork.front_shiny,
+        default_url: sprites
+            .get("front_default")
+            .unwrap()
+            .to_string()
+            .trim_matches('\"')
+            .to_string(),
+        shiny_url: sprites
+            .get("front_shiny")
+            .map(|s| s.to_string().trim_matches('\"').to_string()),
         types,
         capture_rate,
     })

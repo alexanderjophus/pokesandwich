@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::footer;
-use crate::shiny_dex::prelude::*;
+use crate::shiny_dex::dex_by_type::DexByType;
 
 static DEFAULT_DEX: &str = "paldea";
 static DEFAULT_TYPE: &str = "normal";

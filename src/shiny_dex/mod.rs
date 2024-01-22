@@ -86,7 +86,6 @@ static TYPES_INFO: phf::Map<&'static str, TypeInfo> = phf_map! {
 };
 
 pub mod prelude {
-    pub use crate::shiny_dex::dex_by_type::DexByType;
     pub use crate::shiny_dex::favourites::Favourites;
     pub use crate::shiny_dex::shiny_dex::ShinyDex;
 }
