@@ -25,11 +25,14 @@ query Finder($move_name: String!, $ability_name: String!) {
   }
 }
 
-query MovesAndAbilities {
+query Filters {
   pokemon_v2_move {
     name
   }
   pokemon_v2_ability {
     name
+    pokemon_v2_abilityflavortexts(limit: 1, where: {language_id: {_eq: 9}}) {
+      flavor_text
+    }
   }
 }
