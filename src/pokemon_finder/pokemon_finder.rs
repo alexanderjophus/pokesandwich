@@ -49,6 +49,8 @@ fn FiltersList(cx: Scope<FiltersListProps>) -> Element {
 }
 
 fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> Element {
+    let name = use_signal(cx, || "".to_string());
+
     let selected_move = use_signal(cx, || "".to_string());
     let mut moves = resp
         .pokemon_v2_move
@@ -74,9 +76,28 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     ability_keys.sort();
     let abilities_searchable = use_state(cx, || false);
 
+    let selected_type = use_signal(cx, || "".to_string());
+    let mut types = resp
+        .pokemon_v2_type
+        .iter()
+        .map(|t| t.name.clone())
+        .collect::<Vec<_>>();
+    types.sort();
+    let types_searchable = use_state(cx, || false);
+
     cx.render(rsx! {
         div { display: "flex", flex_direction: "row",
             div { margin: "10px", width: "100%", justify_content: "space-evenly",
+                div {
+                    input {
+                        class: "bg-white focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block w-full appearance-none leading-normal",
+                        r#type: "text",
+                        placeholder: "Search",
+                        oninput: move |e| {
+                            name.set(e.data.value.clone());
+                        }
+                    }
+                }
                 div {
                     input {
                         class: "mr-2 leading-tight",
@@ -132,10 +153,33 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         )
                     }
                 }
+                div {
+                    input {
+                        class: "mr-2 leading-tight",
+                        r#type: "checkbox",
+                        id: "types",
+                        name: "types",
+                        value: "types",
+                        checked: "false",
+                        onclick: move |_| {
+                            if types_searchable.get().clone() {
+                                selected_type.set("".to_string());
+                            }
+                            types_searchable.set(!types_searchable.get().clone());
+                        }
+                    }
+                    label {
+                        class: "block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                        r#for: "types", "Types"
+                    }
+                    if types_searchable.get().clone() {
+                        rsx!( SearchableDropdown { selected: selected_type, items: types.clone() } )
+                    }
+                }
             }
             div { overflow: "auto", max_height: "100vh", margin: "10px", width: "100%",
                 render!(
-                    PokemonList { selected_move: selected_move, selected_ability: selected_ability }
+                    PokemonList { name: name, selected_move: selected_move, selected_ability: selected_ability, selected_type: selected_type }
                 )
             }
         }
@@ -194,21 +238,27 @@ fn SearchableDropdown<T: std::fmt::Display>(cx: Scope<SearchableDropdownProps<T>
 
 #[derive(PartialEq, Props, Clone)]
 struct PokemonListProps {
+    name: Signal<String>,
     selected_move: Signal<String>,
     selected_ability: Signal<String>,
+    selected_type: Signal<String>,
 }
 
 fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
     let resp: &UseFuture<Result<finder::ResponseData, Box<dyn Error>>> = use_future(
         cx,
         (
+            &cx.props.name.to_string(),
             &cx.props.selected_move.to_string(),
             &cx.props.selected_ability.to_string(),
+            &cx.props.selected_type.to_string(),
         ),
-        |(selected_move, selected_ability)| async move {
+        |(name, selected_move, selected_ability, selected_type)| async move {
             let request_body = Finder::build_query(finder::Variables {
+                name: name.to_string(),
                 move_name: selected_move.to_string(),
                 ability_name: selected_ability.to_string(),
+                type_name: selected_type.to_string(),
             });
 
             let gql_addr = BASE_GRAPHQL_API_URL;
