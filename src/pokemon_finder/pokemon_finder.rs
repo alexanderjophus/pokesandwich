@@ -1,4 +1,6 @@
 use dioxus::prelude::*;
+use dioxus_free_icons::icons::fa_regular_icons::FaSquareCaretDown;
+use dioxus_free_icons::Icon;
 use dioxus_signals::*;
 use graphql_client::{GraphQLQuery, Response};
 use std::collections::BTreeMap;
@@ -51,7 +53,7 @@ fn FiltersList(cx: Scope<FiltersListProps>) -> Element {
 fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> Element {
     let name = use_signal(cx, || "".to_string());
 
-    let selected_move = use_signal(cx, || "".to_string());
+    let selected_moves = use_signal(cx, || Vec::new());
     let mut moves = resp
         .pokemon_v2_move
         .iter()
@@ -60,7 +62,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     moves.sort();
     let moves_searchable = use_state(cx, || false);
 
-    let selected_ability = use_signal(cx, || "".to_string());
+    let selected_abilities = use_signal(cx, || Vec::new());
     let abilities = resp
         .pokemon_v2_ability
         .iter()
@@ -76,7 +78,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     ability_keys.sort();
     let abilities_searchable = use_state(cx, || false);
 
-    let selected_type = use_signal(cx, || "".to_string());
+    let selected_types = use_signal(cx, || Vec::new());
     let mut types = resp
         .pokemon_v2_type
         .iter()
@@ -108,7 +110,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         checked: "false",
                         onclick: move |_| {
                             if moves_searchable.get().clone() {
-                                selected_move.set("".to_string());
+                                selected_moves.set(Vec::new());
                             }
                             moves_searchable.set(!moves_searchable.get().clone());
                         }
@@ -118,7 +120,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         r#for: "moves", "Moves"
                     }
                     if moves_searchable.get().clone() {
-                        rsx!( SearchableDropdown { selected: selected_move, items: moves.clone() } )
+                        rsx!( SearchableDropdown { selected_options: selected_moves, items: moves.clone() } )
                     }
                 }
                 div {
@@ -131,7 +133,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         checked: "false",
                         onclick: move |_| {
                             if abilities_searchable.get().clone() {
-                                selected_ability.set("".to_string());
+                                selected_abilities.set(Vec::new());
                             }
                             abilities_searchable.set(!abilities_searchable.get().clone());
                         }
@@ -142,14 +144,14 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                     }
                     if abilities_searchable.get().clone() {
                         rsx!(
-                            SearchableDropdown { selected: selected_ability, items: ability_keys.clone() }
-                            {
-                                if let Some(description) = abilities.get(&selected_ability.read().to_string()) {
-                                    rsx!( p { "{description}" } )
-                                } else {
-                                    rsx!( p { "No description available" } )
-                                }
-                            }
+                            SearchableDropdown { selected_options: selected_abilities, items: ability_keys.clone() }
+                            // {
+                            //     if let Some(description) = abilities.get(&selected_ability.read().to_string()) {
+                            //         rsx!( p { "{description}" } )
+                            //     } else {
+                            //         rsx!( p { "No description available" } )
+                            //     }
+                            // }
                         )
                     }
                 }
@@ -163,7 +165,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         checked: "false",
                         onclick: move |_| {
                             if types_searchable.get().clone() {
-                                selected_type.set("".to_string());
+                                selected_types.set(Vec::new());
                             }
                             types_searchable.set(!types_searchable.get().clone());
                         }
@@ -173,13 +175,13 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         r#for: "types", "Types"
                     }
                     if types_searchable.get().clone() {
-                        rsx!( SearchableDropdown { selected: selected_type, items: types.clone() } )
+                        rsx!( SearchableDropdown { selected_options: selected_types, items: types.clone() } )
                     }
                 }
             }
             div { overflow: "auto", max_height: "100vh", margin: "10px", width: "100%",
                 render!(
-                    PokemonList { name: name, selected_move: selected_move, selected_ability: selected_ability, selected_type: selected_type }
+                    PokemonList { name: name, selected_moves: selected_moves, selected_abilities: selected_abilities, selected_types: selected_types }
                 )
             }
         }
@@ -187,50 +189,81 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
 }
 
 #[derive(PartialEq, Props, Clone)]
-struct SearchableDropdownProps<T: std::fmt::Display> {
-    selected: Signal<String>,
+struct SearchableDropdownProps<T: std::fmt::Display + 'static + Clone + std::cmp::PartialEq> {
+    selected_options: Signal<Vec<T>>,
     items: Vec<T>,
 }
 
-fn SearchableDropdown<T: std::fmt::Display>(cx: Scope<SearchableDropdownProps<T>>) -> Element {
+fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::PartialEq>(
+    cx: Scope<SearchableDropdownProps<T>>,
+) -> Element {
+    let toggled = use_state(cx, || false);
     let search_text = use_state(cx, || "".to_string());
-    let filtered_items = cx
-        .props
-        .items
-        .iter()
-        .filter(|&item| {
-            item.to_string()
-                .to_lowercase()
-                .contains(&search_text.get().to_lowercase())
-        })
-        .collect::<Vec<_>>();
 
     cx.render(rsx! {
-        div { display: "flex", flex_direction: "row",
-            div { margin: "10px", width: "100%", justify_content: "space-evenly",
-                div {
+        div { margin: "10px", width: "100%", justify_content: "space-evenly",
+            button {
+                class: "bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow",
+                onclick: move |_| {
+                    toggled.set(!toggled.get().clone());
+                },
+                span {
+                    class: "mr-2",
+                    "Select an option"
+                    Icon {
+                        icon: FaSquareCaretDown,
+                        width: 20,
+                        height: 20,
+                    }
+                }
+            }
+            if toggled.get().clone() {
+                rsx!( div {
+                    class: "absolute mt-1 w-full rounded-md bg-white shadow-lg",
                     input {
-                        class: "bg-white focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block w-full appearance-none leading-normal",
+                        class: "block w-full px-4 py-2 text-gray-800 border rounded-md  border-gray-300 focus:outline-none",
                         r#type: "text",
-                        placeholder: "Search",
+                        placeholder: "Search items",
+                        autocomplete: "off",
                         oninput: move |e| {
                             search_text.set(e.data.value.clone());
                         }
                     }
-                }
-                div {
-                    select {
-                        class: "bg-white font-bold py-2 px-4 rounded",
-                        width: "80%",
-                        oninput: move |e| {
-                            cx.props.selected.set(e.data.value.clone());
-                        },
-                        option { disabled: "true", selected: "true", value: "", "Select an option" }
-                        for item in filtered_items.iter() {
-                            option { value: "{item.clone()}", "{item.clone()}" }
+                    ul {
+                        class: "overflow-auto max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm",
+                        for item in cx.props.items.iter() {
+                            if item.to_string().to_lowercase().contains(&search_text.get().to_lowercase()) {
+                                rsx!( li {
+                                    class: "text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9",
+                                    div {
+                                        class: "flex items-center",
+                                        input {
+                                            class: "absolute cursor-pointer opacity-0 h-0 w-0",
+                                            r#type: "checkbox",
+                                            id: "{item.clone().to_string()}",
+                                            name: "{item.clone().to_string()}",
+                                            value: "{item.clone().to_string()}",
+                                            // checked: "{cx.props.selected.read().to_string() == item.clone().to_string()}",
+                                            onclick: move |_| {
+                                                let mut selected = cx.props.selected_options.read().clone();
+                                                if selected.contains(&item.clone()) {
+                                                    selected.retain(|x| x != &item.clone());
+                                                } else {
+                                                    selected.push(item.clone());
+                                                }
+                                                cx.props.selected_options.set(selected);
+                                            }
+                                        }
+                                        label {
+                                            class: "ml-3 block font-normal truncate",
+                                            r#for: "{item.clone().to_string()}", "{item.clone().to_string()}"
+                                        }
+                                    }
+                                })
+                            }
                         }
                     }
-                }
+                })
             }
         }
     })
@@ -239,9 +272,9 @@ fn SearchableDropdown<T: std::fmt::Display>(cx: Scope<SearchableDropdownProps<T>
 #[derive(PartialEq, Props, Clone)]
 struct PokemonListProps {
     name: Signal<String>,
-    selected_move: Signal<String>,
-    selected_ability: Signal<String>,
-    selected_type: Signal<String>,
+    selected_moves: Signal<Vec<String>>,
+    selected_abilities: Signal<Vec<String>>,
+    selected_types: Signal<Vec<String>>,
 }
 
 fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
@@ -249,16 +282,16 @@ fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
         cx,
         (
             &cx.props.name.to_string(),
-            &cx.props.selected_move.to_string(),
-            &cx.props.selected_ability.to_string(),
-            &cx.props.selected_type.to_string(),
+            &cx.props.selected_moves.read().join("|"),
+            &cx.props.selected_abilities.read().join("|"),
+            &cx.props.selected_types.read().join("|"),
         ),
-        |(name, selected_move, selected_ability, selected_type)| async move {
+        |(name, selected_moves, selected_abilities, selected_types)| async move {
             let request_body = Finder::build_query(finder::Variables {
                 name: name.to_string(),
-                move_name: selected_move.to_string(),
-                ability_name: selected_ability.to_string(),
-                type_name: selected_type.to_string(),
+                move_name: format!("({})", selected_moves.to_string()),
+                ability_name: format!("({})", selected_abilities.to_string()),
+                type_name: format!("({})", selected_types.to_string()),
             });
 
             let gql_addr = BASE_GRAPHQL_API_URL;

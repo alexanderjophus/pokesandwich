@@ -19,3 +19,4 @@ dioxus-logger = "0.4.1"
 log = "0.4.20"
 graphql_client = "0.13.0"
 dioxus-signals = "0.4.3"
+dioxus-free-icons = { version = "0.7.0", features = ["font-awesome-regular"] }
