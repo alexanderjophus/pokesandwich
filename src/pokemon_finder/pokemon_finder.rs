@@ -145,13 +145,13 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                     if abilities_searchable.get().clone() {
                         rsx!(
                             SearchableDropdown { selected_options: selected_abilities, items: ability_keys.clone() }
-                            // {
-                            //     if let Some(description) = abilities.get(&selected_ability.read().to_string()) {
-                            //         rsx!( p { "{description}" } )
-                            //     } else {
-                            //         rsx!( p { "No description available" } )
-                            //     }
-                            // }
+                            for selected_ability in selected_abilities.read().iter() {
+                                if let Some(description) = abilities.get(&selected_ability.to_string()) {
+                                    rsx!( p { b { "{selected_ability}" } " - {description}" } )
+                                } else {
+                                    rsx!( p { "No description available" } )
+                                }
+                            }
                         )
                     }
                 }
@@ -203,7 +203,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
     cx.render(rsx! {
         div { margin: "10px", width: "100%", justify_content: "space-evenly",
             button {
-                class: "bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow",
+                class: "bg-white hover:bg-gray-100 text-gray-800 font-semibold border border-gray-400 rounded shadow",
                 onclick: move |_| {
                     toggled.set(!toggled.get().clone());
                 },
@@ -243,7 +243,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
                                             id: "{item.clone().to_string()}",
                                             name: "{item.clone().to_string()}",
                                             value: "{item.clone().to_string()}",
-                                            // checked: "{cx.props.selected.read().to_string() == item.clone().to_string()}",
+                                            checked: "{cx.props.selected_options.read().contains(&item.clone())}",
                                             onclick: move |_| {
                                                 let mut selected = cx.props.selected_options.read().clone();
                                                 if selected.contains(&item.clone()) {
