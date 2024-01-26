@@ -175,7 +175,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         r#for: "types", "Types"
                     }
                     if types_searchable.get().clone() {
-                        rsx!( SearchableDropdown { selected_options: selected_types, items: types.clone() } )
+                        rsx!( SearchableDropdown { selected_options: selected_types, items: types.clone(), limit: 2 } )
                     }
                 }
             }
@@ -192,6 +192,8 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
 struct SearchableDropdownProps<T: std::fmt::Display + 'static + Clone + std::cmp::PartialEq> {
     selected_options: Signal<Vec<T>>,
     items: Vec<T>,
+
+    limit: Option<usize>,
 }
 
 fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::PartialEq>(
@@ -209,7 +211,17 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
                 },
                 span {
                     class: "mr-2",
-                    "Select an option"
+                    match cx.props.limit {
+                        Some(limit) if limit > 1 => {
+                            rsx!( "select up to {limit} options" )
+                        }
+                        Some(_) => {
+                            rsx!( "select an option" )
+                        }
+                        _ => {
+                            rsx!( "select options" )
+                        }
+                    }
                     Icon {
                         icon: FaSquareCaretDown,
                         width: 20,
@@ -240,6 +252,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
                                         input {
                                             class: "absolute cursor-pointer opacity-0 h-0 w-0",
                                             r#type: "checkbox",
+                                            disabled: if let Some(limit) = cx.props.limit { cx.props.selected_options.read().len() >= limit && !cx.props.selected_options.read().contains(&item.clone()) } else { false },
                                             id: "{item.clone().to_string()}",
                                             name: "{item.clone().to_string()}",
                                             value: "{item.clone().to_string()}",
@@ -287,11 +300,15 @@ fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
             &cx.props.selected_types.read().join("|"),
         ),
         |(name, selected_moves, selected_abilities, selected_types)| async move {
+            let types = selected_types.split("|").collect::<Vec<_>>();
+            let type_one = types.get(0).unwrap_or(&"");
+            let type_two = types.get(1).unwrap_or(&"");
             let request_body = Finder::build_query(finder::Variables {
                 name: name.to_string(),
                 move_name: format!("({})", selected_moves.to_string()),
                 ability_name: format!("({})", selected_abilities.to_string()),
-                type_name: format!("({})", selected_types.to_string()),
+                type_one: type_one.to_string(),
+                type_two: type_two.to_string(),
             });
 
             let gql_addr = BASE_GRAPHQL_API_URL;

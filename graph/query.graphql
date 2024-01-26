@@ -32,21 +32,34 @@ query DexByType($pokemon_type: String!, $dex: String!) {
   }
 }
 
-query Finder($name: String!, $move_name: String!, $ability_name: String!, $type_name: String!) {
+query Finder($name: String!, $move_name: String!, $ability_name: String!, $type_one: String!, $type_two: String!) {
   pokemon_v2_pokemon(
     where: {
-      _and: {
-        name: { _regex: $name }
-        pokemon_v2_pokemonmoves: {
-          pokemon_v2_move: { name: { _regex: $move_name } }
+      _and: [
+        {
+          name: { _regex: $name }
         }
-        pokemon_v2_pokemonabilities: {
-          pokemon_v2_ability: { name: { _regex: $ability_name } }
+        {
+          pokemon_v2_pokemonmoves: {
+            pokemon_v2_move: { name: { _regex: $move_name } }
+          }
         }
-        pokemon_v2_pokemontypes: {
-          pokemon_v2_type: { name: { _regex: $type_name } }
+        {
+          pokemon_v2_pokemonabilities: {
+            pokemon_v2_ability: { name: { _regex: $ability_name } }
+          }
         }
-      }
+        {
+          pokemon_v2_pokemontypes: {
+            pokemon_v2_type: { name: { _regex: $type_one } }
+          }
+        }
+        {
+          pokemon_v2_pokemontypes: {
+            pokemon_v2_type: { name: { _regex: $type_two } }
+          }
+        }
+      ]
     }
   ) {
     name
