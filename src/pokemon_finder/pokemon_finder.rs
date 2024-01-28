@@ -89,10 +89,10 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
 
     cx.render(rsx! {
         div { display: "flex", flex_direction: "row",
-            div { margin: "10px", width: "100%", justify_content: "space-evenly",
+            div { margin: "10px", width: "25%", justify_content: "space-evenly",
                 div {
                     input {
-                        class: "bg-white focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block w-full appearance-none leading-normal",
+                        class: "bg-white focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block appearance-none leading-normal",
                         r#type: "text",
                         placeholder: "Search",
                         oninput: move |e| {
@@ -116,7 +116,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         }
                     }
                     label {
-                        class: "block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
                         r#for: "moves", "Moves"
                     }
                     if moves_searchable.get().clone() {
@@ -139,7 +139,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         }
                     }
                     label {
-                        class: "block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
                         r#for: "abilities", "Abilities"
                     }
                     if abilities_searchable.get().clone() {
@@ -171,7 +171,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                         }
                     }
                     label {
-                        class: "block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
                         r#for: "types", "Types"
                     }
                     if types_searchable.get().clone() {
@@ -179,7 +179,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
                     }
                 }
             }
-            div { overflow: "auto", max_height: "100vh", margin: "10px", width: "100%",
+            div { overflow: "auto", max_height: "100vh", margin: "10px", width: "75%",
                 render!(
                     PokemonList { name: name, selected_moves: selected_moves, selected_abilities: selected_abilities, selected_types: selected_types }
                 )
@@ -205,12 +205,11 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
     cx.render(rsx! {
         div { margin: "10px", width: "100%", justify_content: "space-evenly",
             button {
-                class: "bg-white hover:bg-gray-100 text-gray-800 font-semibold border border-gray-400 rounded shadow",
+                class: "bg-white w-full hover:bg-gray-100 text-gray-800 font-semibold border border-gray-400 rounded shadow",
                 onclick: move |_| {
                     toggled.set(!toggled.get().clone());
                 },
                 span {
-                    class: "mr-2",
                     match cx.props.limit {
                         Some(limit) if limit > 1 => {
                             rsx!( "select up to {limit} options" )
@@ -223,6 +222,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
                         }
                     }
                     Icon {
+                        class: "display: inline",
                         icon: FaSquareCaretDown,
                         width: 20,
                         height: 20,
@@ -231,7 +231,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
             }
             if toggled.get().clone() {
                 rsx!( div {
-                    class: "absolute mt-1 w-full rounded-md bg-white shadow-lg",
+                    class: "w-full mt-1 rounded-md bg-white shadow-lg",
                     input {
                         class: "block w-full px-4 py-2 text-gray-800 border rounded-md  border-gray-300 focus:outline-none",
                         r#type: "text",
@@ -250,7 +250,7 @@ fn SearchableDropdown<T: std::fmt::Display + 'static + Clone + std::cmp::Partial
                                     div {
                                         class: "flex items-center",
                                         input {
-                                            class: "absolute cursor-pointer opacity-0 h-0 w-0",
+                                            class: "absolute cursor-pointer",
                                             r#type: "checkbox",
                                             disabled: if let Some(limit) = cx.props.limit { cx.props.selected_options.read().len() >= limit && !cx.props.selected_options.read().contains(&item.clone()) } else { false },
                                             id: "{item.clone().to_string()}",
@@ -332,35 +332,7 @@ fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
             render!(
                 div { display: "flex", flex_direction: "row", flex_wrap: "wrap",
                     for pokemon in resp.pokemon_v2_pokemon.iter() {
-                        div { margin: "10px", width: "200px", height: "200px", border: "1px solid black",
-                            position: "relative",
-                            img { src: "{pokemon.pokemon_v2_pokemonsprites[0]
-                                .sprites
-                                .get(\"other\")
-                                .unwrap()
-                                .get(\"official-artwork\")
-                                .unwrap()
-                                .get(\"front_default\")
-                                .unwrap()
-                                .to_string()
-                                .trim_matches('\"')}"
-                            }
-                            div {
-                                display: "flex",
-                                flex_direction: "row",
-                                justify_content: "space-between",
-                                position: "absolute",
-                                bottom: "0",
-                                width: "100%",
-                                background: "rgba(0, 0, 0, 0.5)",
-                                color: "white",
-                                font_size: "20px",
-                                text_align: "center",
-                                transition: ".5s ease",
-                                opacity: "0.5",
-                                "{pokemon.name.clone()}"
-                            }
-                        }
+                        rsx!( Pokemon { pokemon: pokemon.clone() } )
                     }
                 }
             )
@@ -368,6 +340,44 @@ fn PokemonList(cx: Scope<PokemonListProps>) -> Element {
         Some(Err(err)) => render! {"An error occurred while loading {err}"},
         _ => render! {"Loading items"},
     }
+}
+
+#[derive(Props, PartialEq)]
+struct PokemonProps {
+    pokemon: finder::FinderPokemonV2Pokemon,
+}
+
+#[component]
+fn Pokemon(cx: Scope<PokemonProps>) -> Element {
+    cx.render(rsx! {
+        div { margin: "10px", width: "200px", height: "200px", border: "1px solid black",
+            position: "relative",
+            div {
+                display: "flex",
+                flex_direction: "row",
+                justify_content: "space-between",
+                position: "absolute",
+                bottom: "0",
+                width: "100%",
+                color: "white",
+                font_size: "20px",
+                text_align: "center",
+                class: "bg-sky-500 hover:bg-sky-700",
+                "{cx.props.pokemon.name.clone()}"
+            }
+            img { src: "{cx.props.pokemon.pokemon_v2_pokemonsprites[0]
+                .sprites
+                .get(\"other\")
+                .unwrap()
+                .get(\"official-artwork\")
+                .unwrap()
+                .get(\"front_default\")
+                .unwrap()
+                .to_string()
+                .trim_matches('\"')}"
+            }
+        }
+    })
 }
 
 #[allow(non_camel_case_types)]
