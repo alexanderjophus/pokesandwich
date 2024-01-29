@@ -92,7 +92,7 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
             div { margin: "10px", width: "25%", justify_content: "space-evenly",
                 div {
                     input {
-                        class: "bg-white focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block appearance-none leading-normal",
+                        class: "bg-white w-full focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block appearance-none leading-normal",
                         r#type: "text",
                         placeholder: "Search",
                         oninput: move |e| {
@@ -349,23 +349,74 @@ struct PokemonProps {
 
 #[component]
 fn Pokemon(cx: Scope<PokemonProps>) -> Element {
+    let serebii_url = format!(
+        "https://www.serebii.net/pokedex-sv/{}/",
+        cx.props.pokemon.name.clone()
+    );
+    let types = cx
+        .props
+        .pokemon
+        .pokemon_v2_pokemontypes
+        .iter()
+        .map(|t| {
+            t.pokemon_v2_type
+                .clone()
+                .unwrap_or_default()
+                .name
+                .clone()
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join(" / ");
+
+    let abilities = cx
+        .props
+        .pokemon
+        .pokemon_v2_pokemonabilities
+        .iter()
+        .map(|a| {
+            if a.is_hidden {
+                format!(
+                    "{} (hidden)",
+                    a.pokemon_v2_ability
+                        .clone()
+                        .unwrap_or_default()
+                        .name
+                        .clone()
+                        .to_string()
+                )
+            } else {
+                a.pokemon_v2_ability
+                    .clone()
+                    .unwrap_or_default()
+                    .name
+                    .clone()
+                    .to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" / ");
+
     cx.render(rsx! {
-        div { margin: "10px", width: "200px", height: "200px", border: "1px solid black",
+        div { margin: "10px", width: "250px", height: "250px", border: "1px solid black",
             position: "relative",
+            class: "group",
             div {
-                display: "flex",
-                flex_direction: "row",
-                justify_content: "space-between",
-                position: "absolute",
-                bottom: "0",
-                width: "100%",
-                color: "white",
-                font_size: "20px",
-                text_align: "center",
-                class: "bg-sky-500 hover:bg-sky-700",
+                class: "absolute bottom-0 w-full text-xl bg-sky-500 visible group-hover:hidden opacity-75 hover:opacity-100 place-content-center text-white",
                 "{cx.props.pokemon.name.clone()}"
             }
-            img { src: "{cx.props.pokemon.pokemon_v2_pokemonsprites[0]
+            div {
+                class: "absolute top-0 w-full text-2xl bg-sky-500 invisible group-hover:visible opacity-75 place-content-center text-white",
+                a {
+                    href: "{serebii_url}",
+                    target: "_blank",
+                    "{cx.props.pokemon.name.clone()}"
+                }
+                p { "{types}" }
+                p { "{abilities}" }
+            }
+            img {
+                src: "{cx.props.pokemon.pokemon_v2_pokemonsprites[0]
                 .sprites
                 .get(\"other\")
                 .unwrap()

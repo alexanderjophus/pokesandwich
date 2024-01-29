@@ -66,6 +66,17 @@ query Finder($name: String!, $move_name: String!, $ability_name: String!, $type_
     pokemon_v2_pokemonsprites {
       sprites
     }
+    pokemon_v2_pokemontypes {
+      pokemon_v2_type {
+        name
+      }
+    }
+    pokemon_v2_pokemonabilities {
+      pokemon_v2_ability {
+        name
+      }
+      is_hidden
+    }
   }
 }
 
