@@ -58,7 +58,7 @@ fn NavBar(cx: Scope) -> Element {
             padding: "10px",
             Link { to: "/", "Home" }
             Link { to: "/shiny", "Shiny Dex" }
-            Link { to: "/finder", "Pokémon Finder" span { color: "red", " (WIP)" } }
+            Link { to: "/finder", "Pokémon Finder" }
         }
         Outlet::<Route> {}
     }

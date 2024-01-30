@@ -10,18 +10,46 @@ use crate::footer;
 use crate::BASE_GRAPHQL_API_URL;
 
 pub fn PokemonFinder(cx: Scope) -> Element {
+    let name = use_signal(cx, || "".to_string());
+    let selected_moves = use_signal(cx, || Vec::new());
+    let selected_abilities = use_signal(cx, || Vec::new());
+    let selected_types = use_signal(cx, || Vec::new());
+
     cx.render(rsx! {
         div { display: "flex", flex_direction: "row", justify_content: "space-between",
             h1 { "Welcome to the pokemon finder" }
-            h1 { "This feature is a work in progress" }
         }
-        FiltersList {},
+        div { display: "flex", flex_direction: "row",
+            div { margin: "10px", width: "25%", justify_content: "space-evenly",
+                FiltersList {
+                    name: name,
+                    selected_moves: selected_moves,
+                    selected_abilities: selected_abilities,
+                    selected_types: selected_types,
+                },
+            },
+            div { overflow: "auto", max_height: "100vh", margin: "10px", width: "75%",
+                render!(
+                    PokemonList {
+                        name: name,
+                        selected_moves: selected_moves,
+                        selected_abilities: selected_abilities,
+                        selected_types: selected_types
+                    }
+                )
+            },
+        },
         footer::Footer {}
     })
 }
 
 #[derive(PartialEq, Props, Clone)]
-struct FiltersListProps {}
+struct FiltersListProps {
+    name: Signal<String>,
+    selected_moves: Signal<Vec<String>>,
+    selected_abilities: Signal<Vec<String>>,
+    selected_types: Signal<Vec<String>>,
+}
 
 fn FiltersList(cx: Scope<FiltersListProps>) -> Element {
     let resp: &UseFuture<Result<filters::ResponseData, Box<dyn Error>>> =
@@ -44,17 +72,32 @@ fn FiltersList(cx: Scope<FiltersListProps>) -> Element {
         });
 
     match resp.value() {
-        Some(Ok(resp)) => RenderDropdowns(cx, resp.clone()),
+        Some(Ok(resp)) => render!(RenderDropdowns {
+            name: cx.props.name.clone(),
+            selected_moves: cx.props.selected_moves.clone(),
+            selected_abilities: cx.props.selected_abilities.clone(),
+            selected_types: cx.props.selected_types.clone(),
+            resp: resp.clone(),
+        }),
         Some(Err(err)) => render! {"An error occurred while loading {err}"},
         _ => render! {"Loading filters"},
     }
 }
 
-fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> Element {
-    let name = use_signal(cx, || "".to_string());
+#[derive(PartialEq, Props, Clone)]
+struct RenderDropdownsProps {
+    name: Signal<String>,
+    selected_moves: Signal<Vec<String>>,
+    selected_abilities: Signal<Vec<String>>,
+    selected_types: Signal<Vec<String>>,
+    resp: filters::ResponseData,
+}
 
-    let selected_moves = use_signal(cx, || Vec::new());
-    let mut moves = resp
+#[component]
+fn RenderDropdowns(cx: Scope<RenderDropdownsProps>) -> Element {
+    let mut moves = cx
+        .props
+        .resp
         .pokemon_v2_move
         .iter()
         .map(|m| m.name.clone())
@@ -62,8 +105,9 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     moves.sort();
     let moves_searchable = use_state(cx, || false);
 
-    let selected_abilities = use_signal(cx, || Vec::new());
-    let abilities = resp
+    let abilities = cx
+        .props
+        .resp
         .pokemon_v2_ability
         .iter()
         .map(|a| {
@@ -78,8 +122,9 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     ability_keys.sort();
     let abilities_searchable = use_state(cx, || false);
 
-    let selected_types = use_signal(cx, || Vec::new());
-    let mut types = resp
+    let mut types = cx
+        .props
+        .resp
         .pokemon_v2_type
         .iter()
         .map(|t| t.name.clone())
@@ -88,101 +133,92 @@ fn RenderDropdowns(cx: Scope<FiltersListProps>, resp: filters::ResponseData) -> 
     let types_searchable = use_state(cx, || false);
 
     cx.render(rsx! {
-        div { display: "flex", flex_direction: "row",
-            div { margin: "10px", width: "25%", justify_content: "space-evenly",
-                div {
-                    input {
-                        class: "bg-white w-full focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block appearance-none leading-normal",
-                        r#type: "text",
-                        placeholder: "Search",
-                        oninput: move |e| {
-                            name.set(e.data.value.clone());
-                        }
-                    }
-                }
-                div {
-                    input {
-                        class: "mr-2 leading-tight",
-                        r#type: "checkbox",
-                        id: "moves",
-                        name: "moves",
-                        value: "moves",
-                        checked: "false",
-                        onclick: move |_| {
-                            if moves_searchable.get().clone() {
-                                selected_moves.set(Vec::new());
-                            }
-                            moves_searchable.set(!moves_searchable.get().clone());
-                        }
-                    }
-                    label {
-                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
-                        r#for: "moves", "Moves"
-                    }
-                    if moves_searchable.get().clone() {
-                        rsx!( SearchableDropdown { selected_options: selected_moves, items: moves.clone() } )
-                    }
-                }
-                div {
-                    input {
-                        class: "mr-2 leading-tight",
-                        r#type: "checkbox",
-                        id: "abilities",
-                        name: "abilities",
-                        value: "abilities",
-                        checked: "false",
-                        onclick: move |_| {
-                            if abilities_searchable.get().clone() {
-                                selected_abilities.set(Vec::new());
-                            }
-                            abilities_searchable.set(!abilities_searchable.get().clone());
-                        }
-                    }
-                    label {
-                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
-                        r#for: "abilities", "Abilities"
-                    }
-                    if abilities_searchable.get().clone() {
-                        rsx!(
-                            SearchableDropdown { selected_options: selected_abilities, items: ability_keys.clone() }
-                            for selected_ability in selected_abilities.read().iter() {
-                                if let Some(description) = abilities.get(&selected_ability.to_string()) {
-                                    rsx!( p { b { "{selected_ability}" } " - {description}" } )
-                                } else {
-                                    rsx!( p { "No description available" } )
-                                }
-                            }
-                        )
-                    }
-                }
-                div {
-                    input {
-                        class: "mr-2 leading-tight",
-                        r#type: "checkbox",
-                        id: "types",
-                        name: "types",
-                        value: "types",
-                        checked: "false",
-                        onclick: move |_| {
-                            if types_searchable.get().clone() {
-                                selected_types.set(Vec::new());
-                            }
-                            types_searchable.set(!types_searchable.get().clone());
-                        }
-                    }
-                    label {
-                        class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
-                        r#for: "types", "Types"
-                    }
-                    if types_searchable.get().clone() {
-                        rsx!( SearchableDropdown { selected_options: selected_types, items: types.clone(), limit: 2 } )
-                    }
+        div {
+            input {
+                class: "bg-white w-full focus:outline-none focus:shadow-outline border border-gray-300 rounded-lg py-2 px-4 block appearance-none leading-normal",
+                r#type: "text",
+                placeholder: "Search",
+                oninput: move |e| {
+                    cx.props.name.set(e.data.value.clone());
                 }
             }
-            div { overflow: "auto", max_height: "100vh", margin: "10px", width: "75%",
-                render!(
-                    PokemonList { name: name, selected_moves: selected_moves, selected_abilities: selected_abilities, selected_types: selected_types }
+        }
+        div {
+            input {
+                class: "mr-2 leading-tight",
+                r#type: "checkbox",
+                id: "moves",
+                name: "moves",
+                value: "moves",
+                checked: "false",
+                onclick: move |_| {
+                    if moves_searchable.get().clone() {
+                        cx.props.selected_moves.set(Vec::new());
+                    }
+                    moves_searchable.set(!moves_searchable.get().clone());
+                }
+            }
+            label {
+                class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                r#for: "moves", "Moves"
+            }
+            if moves_searchable.get().clone() {
+                rsx!( SearchableDropdown { selected_options: cx.props.selected_moves, items: moves.clone() } )
+            }
+        }
+        div {
+            input {
+                class: "mr-2 leading-tight",
+                r#type: "checkbox",
+                id: "abilities",
+                name: "abilities",
+                value: "abilities",
+                checked: "false",
+                onclick: move |_| {
+                    if abilities_searchable.get().clone() {
+                        cx.props.selected_abilities.set(Vec::new());
+                    }
+                    abilities_searchable.set(!abilities_searchable.get().clone());
+                }
+            }
+            label {
+                class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                r#for: "abilities", "Abilities"
+            }
+            if abilities_searchable.get().clone() {
+                rsx!(
+                    SearchableDropdown { selected_options: cx.props.selected_abilities, items: ability_keys.clone() }
+                    for selected_ability in cx.props.selected_abilities.read().iter() {
+                        if let Some(description) = abilities.get(&selected_ability.to_string()) {
+                            rsx!( p { b { "{selected_ability}" } " - {description}" } )
+                        } else {
+                            rsx!( p { "No description available" } )
+                        }
+                    }
                 )
+            }
+        }
+        div {
+            input {
+                class: "mr-2 leading-tight",
+                r#type: "checkbox",
+                id: "types",
+                name: "types",
+                value: "types",
+                checked: "false",
+                onclick: move |_| {
+                    if types_searchable.get().clone() {
+                        cx.props.selected_types.set(Vec::new());
+                    }
+                    types_searchable.set(!types_searchable.get().clone());
+                }
+            }
+            label {
+                class: "text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4",
+                r#for: "types", "Types"
+            }
+            if types_searchable.get().clone() {
+                rsx!( SearchableDropdown { selected_options: cx.props.selected_types, items: types.clone(), limit: 2 } )
             }
         }
     })
