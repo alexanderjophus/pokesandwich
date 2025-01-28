@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn Footer(cx: Scope) -> Element {
-    render! {
+pub fn Footer() -> Element {
+    rsx! {
         script { src: "https://kit.fontawesome.com/e04bfc6d26.js", crossorigin: "anonymous" }
         footer {
             position: "relative",

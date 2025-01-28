@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
+use crate::document::Stylesheet;
 use dioxus::prelude::*;
+use dioxus_logger::tracing::Level;
 use dioxus_router::prelude::*;
-use log::LevelFilter;
 
 mod home;
 use home::Home;
@@ -16,7 +17,7 @@ mod google_analytics;
 pub static BASE_GRAPHQL_API_URL: &str = "https://beta.pokeapi.co/graphql/v1beta";
 pub static BASE_REST_API_URL: &str = "https://pokeapi.co/api/v2";
 
-#[derive(Routable, Clone)]
+#[derive(Clone, Routable)]
 #[rustfmt::skip]
 enum Route {
     #[layout(NavBar)]
@@ -38,16 +39,9 @@ enum Route {
     },
 }
 
-pub fn App(cx: Scope) -> Element {
-    render! {
-        google_analytics::GoogleAnalytics { config: "G-HJKW1YL1C9" }
-        Router::<Route> {}
-    }
-}
-
 #[component]
-fn NavBar(cx: Scope) -> Element {
-    render! {
+fn NavBar() -> Element {
+    rsx! {
         nav {
             display: "flex",
             flex_direction: "row",
@@ -65,8 +59,8 @@ fn NavBar(cx: Scope) -> Element {
 }
 
 #[component]
-fn PageNotFound(cx: Scope, _route: Vec<String>) -> Element {
-    render! {
+fn PageNotFound(_route: Vec<String>) -> Element {
+    rsx! {
         h1 { "Page not found" }
         p { "We are terribly sorry, but the page you requested doesn't exist." }
         Footer {}
@@ -74,6 +68,12 @@ fn PageNotFound(cx: Scope, _route: Vec<String>) -> Element {
 }
 
 fn main() {
-    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
-    dioxus_web::launch(App);
+    dioxus_logger::init(Level::INFO).expect("failed to init logger");
+    dioxus::LaunchBuilder::new().launch(|| {
+        rsx! {
+            Stylesheet { href: asset!("./public/tailwind.css") }
+            google_analytics::GoogleAnalytics { config: "G-HJKW1YL1C9" }
+            Router::<Route> {}
+        }
+    });
 }

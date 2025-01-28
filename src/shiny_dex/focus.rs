@@ -3,7 +3,6 @@ use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-use crate::shiny_dex::TYPES_INFO;
 use crate::BASE_GRAPHQL_API_URL;
 
 #[derive(Clone)]
@@ -23,38 +22,45 @@ pub struct FocusData {
     capture_rate: i64,
 }
 
-pub fn Focus(cx: Scope) -> Element {
-    let focus_state = use_shared_state::<FocusState>(cx)?;
-
+#[component]
+pub fn Focus(focus_state: ReadOnlySignal<FocusState>) -> Element {
     match &*focus_state.read() {
-        FocusState::Unset => render! {"Click on a pokemon to preview it here"},
-        FocusState::Loading => render! {"Loading..."},
+        FocusState::Unset => rsx! {"Click on a pokemon to preview it here"},
+        FocusState::Loading => rsx! {"Loading..."},
         FocusState::Loaded(focus_data) => {
-            render! { FocusDetail { focus_data: focus_data.clone() } }
+            rsx! { FocusDetail { focus_data: focus_data.clone() } }
         }
-        FocusState::Failed(err) => render! {"{err}"},
+        FocusState::Failed(err) => rsx! {"{err}"},
     }
 }
 
 #[component]
-fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
-    let mut chain = use_state(cx, || 0);
-    let sandwich = use_state(cx, || 0);
-    let shiny_charm = use_state(cx, || false);
-    let (odds, rolls) = shiny_odds(*chain.get(), *sandwich.get(), *shiny_charm.get());
+fn FocusDetail(focus_data: FocusData) -> Element {
+    let mut chain = use_signal(|| 0);
+    let mut sandwich = use_signal(|| 0);
+    let mut shiny_charm = use_signal(|| false);
+    let (odds, rolls) = shiny_odds(
+        chain.read().clone(),
+        sandwich.read().clone(),
+        shiny_charm.read().clone(),
+    );
 
     let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
-    render! {
+    rsx! {
         div { display: "flex", flex_direction: "row",
             div { margin: "10px", width: "50%",
                 h1 { class: "text-3xl", "{focus_data.name.clone()}" }
-                div { display: "flex", flex_direction: "row", focus_data.types.join(" + ") }
-                b { "Easy 3 star sparkling/encounter/title sandwich:" }
-                p {
-                    "tomato + onion + green pepper + hamburger + 2 * ("
-                    focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or "),
-                    ")"
+                div { display: "flex", flex_direction: "row", margin: "10px",
+                    for t in focus_data.types.iter() {
+                        "{t}"
+                    }
                 }
+                // b { "Easy 3 star sparkling/encounter/title sandwich:" }
+                // p {
+                //     "tomato + onion + green pepper + hamburger + 2 * ("
+                //     focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or "),
+                //     ")"
+                // }
                 p {
                     a { href: "{serebii_link}", target: "_blank", "Serebii" }
                     " | Capture Rate: {focus_data.capture_rate}"
@@ -62,20 +68,21 @@ fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
             }
             div { margin: "10px", width: "50%",
                 p {
-                    rsx! { "Shiny Charm: " },
+                    "Shiny Charm: ",
                     input {
                         r#type: "checkbox",
                         oninput: move |_| {
-                            shiny_charm.set(!shiny_charm.get());
+                            let set = shiny_charm.read().clone();
+                            shiny_charm.set(!set);
                         },
-                        checked: *shiny_charm.get()
+                        checked: *shiny_charm.read()
                     }
                 }
                 p {
-                    rsx! { "Sandwich Level: " },
+                    "Sandwich Level: ",
                     select {
                         oninput: move |e| {
-                            sandwich.set(e.data.value.parse::<i64>().unwrap_or_default());
+                            sandwich.set(e.data.value().parse::<i64>().unwrap_or_default());
                         },
                         for i in [0, 1, 3] {
                             option { value: "{i}", b { "{i}" } }
@@ -90,7 +97,7 @@ fn FocusDetail(cx: Scope, focus_data: FocusData) -> Element {
                         },
                         "Chain +"
                     }
-                    rsx! { b {"{chain}" } },
+                    b {"{chain}" },
                     button {
                         style: "margin-left: 10px;",
                         onclick: move |_| {
@@ -133,11 +140,11 @@ fn shiny_odds(chain: i64, sandwich_level: i64, shiny_charm: bool) -> (f64, i64) 
 }
 
 pub async fn load_focus(
-    focus_state: UseSharedState<FocusState>,
-    pokemon: dex_by_type::DexByTypePokemonV2Pokemon,
+    mut focus_state: Signal<FocusState>,
+    pokemon: ReadOnlySignal<dex_by_type::DexByTypePokemonV2Pokemon>,
 ) {
     *focus_state.write() = FocusState::Loading;
-    if let Ok(focus_data) = get_data(pokemon.clone()).await {
+    if let Ok(focus_data) = get_data(pokemon()).await {
         *focus_state.write() = FocusState::Loaded(focus_data.clone());
     } else {
         *focus_state.write() = FocusState::Failed("Failed to load data".to_string());
