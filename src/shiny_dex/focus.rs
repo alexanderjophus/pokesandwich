@@ -1,8 +1,13 @@
+use charming::component::{RadarCoordinate, Title};
+use charming::series::Radar;
+use charming::{Chart, WasmRenderer};
 use dioxus::prelude::*;
+use dioxus_logger::tracing::info;
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+use crate::shiny_dex::TYPES_INFO;
 use crate::BASE_GRAPHQL_API_URL;
 
 #[derive(Clone)]
@@ -16,6 +21,7 @@ pub enum FocusState {
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct FocusData {
     name: String,
+    stats: Vec<i64>,
     default_url: String,
     shiny_url: Option<String>,
     types: Vec<String>,
@@ -35,7 +41,7 @@ pub fn Focus(focus_state: ReadOnlySignal<FocusState>) -> Element {
 }
 
 #[component]
-fn FocusDetail(focus_data: FocusData) -> Element {
+fn FocusDetail(focus_data: ReadOnlySignal<FocusData>) -> Element {
     let mut chain = use_signal(|| 0);
     let mut sandwich = use_signal(|| 0);
     let mut shiny_charm = use_signal(|| false);
@@ -45,26 +51,53 @@ fn FocusDetail(focus_data: FocusData) -> Element {
         shiny_charm.read().clone(),
     );
 
-    let serebii_link = format!("https://www.serebii.net/pokedex-sv/{}", focus_data.name);
+    let serebii_link = format!(
+        "https://www.serebii.net/pokedex-sv/{}",
+        focus_data.read().name
+    );
+
+    let renderer = use_signal(|| WasmRenderer::new(600, 400));
+
+    use_effect(move || {
+        let chart = Chart::new()
+            .title(Title::new().text("Base Stats"))
+            .radar(RadarCoordinate::new().indicator(vec![
+                ("HP", 1, 255),
+                ("Attack", 1, 255),
+                ("Defence", 1, 255),
+                ("Sp Attack", 1, 255),
+                ("Sp Defence", 1, 255),
+                ("Speed", 1, 255),
+            ]))
+            .series(
+                Radar::new()
+                    .name("Base stats")
+                    .data(vec![(focus_data.read().stats.clone(), "Base Stats")]),
+            );
+        renderer.read_unchecked().render("chart", &chart).unwrap();
+    });
+
     rsx! {
         div { display: "flex", flex_direction: "row",
             div { margin: "10px", width: "50%",
-                h1 { class: "text-3xl", "{focus_data.name.clone()}" }
+                h1 { class: "text-3xl", "{focus_data.read().name.clone()}" }
                 div { display: "flex", flex_direction: "row", margin: "10px",
-                    for t in focus_data.types.iter() {
+                    for t in focus_data.read().types.iter() {
                         "{t}"
                     }
                 }
-                // b { "Easy 3 star sparkling/encounter/title sandwich:" }
-                // p {
-                //     "tomato + onion + green pepper + hamburger + 2 * ("
-                //     focus_data.types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(" or "),
-                //     ")"
-                // }
+                b { "Easy 3 star sparkling/encounter/title sandwich:" }
+                p {
+                    "tomato + onion + green pepper + hamburger + 2 * ({focus_data.read().types.iter().map(|t| TYPES_INFO.get(t.as_str()).unwrap().ingredient).collect::<Vec<&str>>().join(\" or \")})"
+                }
                 p {
                     a { href: "{serebii_link}", target: "_blank", "Serebii" }
-                    " | Capture Rate: {focus_data.capture_rate}"
+                    " | Capture Rate: {focus_data.read().capture_rate}"
                 }
+            }
+            div {
+              id: "chart",
+              style: "display: inline-block; height: 400px; width: 600px;",
             }
             div { margin: "10px", width: "50%",
                 p {
@@ -116,9 +149,9 @@ fn FocusDetail(focus_data: FocusData) -> Element {
             }
         }
         div { display: "flex", flex_direction: "row",
-            img { src: "{focus_data.default_url}", width: "100%" }
+            img { src: "{focus_data.read().default_url}", width: "100%" }
             img {
-                src: "{focus_data.shiny_url.clone().unwrap_or_default()}",
+                src: "{focus_data.read().shiny_url.clone().unwrap_or_default()}",
                 width: "100%"
             }
         }
@@ -207,6 +240,11 @@ async fn get_data(
 
     Ok(FocusData {
         name: pokemon.name,
+        stats: pokemon
+            .pokemon_v2_pokemonstats
+            .iter()
+            .map(|s| s.base_stat)
+            .collect(),
         default_url: sprites
             .get("front_default")
             .unwrap()

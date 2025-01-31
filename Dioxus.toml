@@ -19,9 +19,6 @@ title = "PokéAssistant | An open source Pokémon SV helper tool"
 # include `assets` in web platform
 [web.resource]
 
-# Javascript code file
-script = []
-
 [web.resource.dev]
 
 # Javascript code file

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::shiny_dex::focus::{dex_by_type, load_focus, perform_gql_query, Focus, FocusState};
 use crate::shiny_dex::TYPES_INFO;
 use dioxus::prelude::*;
+use dioxus_logger::tracing::info;
 use dioxus_sdk::storage::use_persistent;
 
 #[component]
@@ -27,6 +28,7 @@ struct SearchProps {
 }
 
 fn Search(props: SearchProps) -> Element {
+    let faves = use_persistent("faves", || HashSet::<String>::new());
     let pokemon = use_resource(move || async move {
         let variables = dex_by_type::Variables {
             dex: props.dex.to_string().clone(),
@@ -37,7 +39,7 @@ fn Search(props: SearchProps) -> Element {
 
     match &*pokemon.read_unchecked() {
         Some(Ok(pokemon)) => {
-            rsx! { RenderDex { focus_state: props.focus_state, pokemon: pokemon.clone(), pokemon_type: props.pokemon_type.clone() } }
+            rsx! { RenderDex { faves: faves,  focus_state: props.focus_state, pokemon: pokemon.clone(), pokemon_type: props.pokemon_type.clone() } }
         }
         Some(Err(err)) => rsx! {"An error occurred while loading {err}"},
         _ => rsx! {"Loading items"},
@@ -46,6 +48,7 @@ fn Search(props: SearchProps) -> Element {
 
 #[derive(PartialEq, Props, Clone)]
 struct RenderDexProps {
+    faves: Signal<HashSet<String>>,
     focus_state: Signal<FocusState>,
     pokemon: ReadOnlySignal<Vec<dex_by_type::DexByTypePokemonV2Pokemon>>,
     pokemon_type: String,
@@ -55,12 +58,13 @@ struct RenderDexProps {
 fn RenderDex(props: RenderDexProps) -> Element {
     rsx! {
         div { overflow: "hidden", background_color: TYPES_INFO.get(props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{props.pokemon_type.clone()}.svg" } }
-        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { focus_state: props.focus_state, pokemon: props.pokemon } }
+        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { faves: props.faves,  focus_state: props.focus_state, pokemon: props.pokemon } }
     }
 }
 
 #[component]
 fn DexTable(
+    faves: Signal<HashSet<String>>,
     focus_state: Signal<FocusState>,
     pokemon: ReadOnlySignal<Vec<dex_by_type::DexByTypePokemonV2Pokemon>>,
 ) -> Element {
@@ -71,7 +75,7 @@ fn DexTable(
             }
             tbody {
                 for entry in pokemon() {
-                    DexRow { focus_state, entry: entry.clone() }
+                    DexRow { faves: faves, focus_state, entry: entry.clone() }
                 }
             }
         }
@@ -80,11 +84,10 @@ fn DexTable(
 
 #[component]
 fn DexRow(
+    faves: Signal<HashSet<String>>,
     focus_state: Signal<FocusState>,
     entry: ReadOnlySignal<dex_by_type::DexByTypePokemonV2Pokemon>,
 ) -> Element {
-    let faves = use_persistent("faves", || HashSet::<String>::new());
-
     rsx! {
         tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
             td {
@@ -97,9 +100,13 @@ fn DexRow(
                     div {
                         width: "20%",
                         onclick: move |_|  {
+                            let name = &entry().name;
+                            info!("clicked on {name}");
                             if faves().contains(&entry().name) {
+                                info!("removing {name} from faves");
                                 faves().remove(&entry().name);
                             } else {
+                                info!("adding {name} to faves");
                                 faves().insert(entry().name);
                             }
                         },

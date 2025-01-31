@@ -1,99 +1,111 @@
 query DexByType($pokemon_type: String!, $dex: String!) {
-  pokemon_v2_pokemon(
-    where: {
-      _and: {
-        pokemon_v2_pokemonspecy: {
-          pokemon_v2_pokemondexnumbers: {
-            pokemon_v2_pokedex: { name: { _eq: $dex } }
-          }
+    pokemon_v2_pokemon(
+        where: {
+            _and: {
+                pokemon_v2_pokemonspecy: {
+                    pokemon_v2_pokemondexnumbers: {
+                        pokemon_v2_pokedex: { name: { _eq: $dex } }
+                    }
+                }
+                pokemon_v2_pokemontypes: {
+                    pokemon_v2_type: { name: { _eq: $pokemon_type } }
+                }
+                name: {
+                    _nregex: ".*-(gmax|mega|terastal|stellar|hisui|starter|totem)"
+                }
+                order: { _gt: 0 }
+            }
         }
-        pokemon_v2_pokemontypes: {
-          pokemon_v2_type: { name: { _eq: $pokemon_type } }
-        }
-        name: { _nregex: ".*-(gmax|mega|terastal|stellar|hisui|starter|totem)" }
-        order: { _gt: 0 }
-      }
-    }
-    order_by: { order: asc }
-  ) {
-    name
-    order
-    pokemon_v2_pokemonspecy {
-      capture_rate
-    }
-    pokemon_v2_pokemonsprites {
-      sprites
-    }
-    pokemon_v2_pokemontypes {
-      pokemon_v2_type {
+        order_by: { order: asc }
+    ) {
         name
-      }
+        order
+        pokemon_v2_pokemonspecy {
+            capture_rate
+        }
+        pokemon_v2_pokemonstats {
+            base_stat
+            pokemon_v2_stat {
+                name
+            }
+        }
+        pokemon_v2_pokemonsprites {
+            sprites
+        }
+        pokemon_v2_pokemontypes {
+            pokemon_v2_type {
+                name
+            }
+        }
     }
-  }
 }
 
-query Finder($name: String!, $move_name: String!, $ability_name: String!, $type_one: String!, $type_two: String!) {
-  pokemon_v2_pokemon(
-    where: {
-      _and: [
-        {
-          name: { _regex: $name }
+query Finder(
+    $name: String!
+    $move_name: String!
+    $ability_name: String!
+    $type_one: String!
+    $type_two: String!
+) {
+    pokemon_v2_pokemon(
+        where: {
+            _and: [
+                { name: { _regex: $name } }
+                {
+                    pokemon_v2_pokemonmoves: {
+                        pokemon_v2_move: { name: { _regex: $move_name } }
+                    }
+                }
+                {
+                    pokemon_v2_pokemonabilities: {
+                        pokemon_v2_ability: { name: { _regex: $ability_name } }
+                    }
+                }
+                {
+                    pokemon_v2_pokemontypes: {
+                        pokemon_v2_type: { name: { _regex: $type_one } }
+                    }
+                }
+                {
+                    pokemon_v2_pokemontypes: {
+                        pokemon_v2_type: { name: { _regex: $type_two } }
+                    }
+                }
+            ]
         }
-        {
-          pokemon_v2_pokemonmoves: {
-            pokemon_v2_move: { name: { _regex: $move_name } }
-          }
-        }
-        {
-          pokemon_v2_pokemonabilities: {
-            pokemon_v2_ability: { name: { _regex: $ability_name } }
-          }
-        }
-        {
-          pokemon_v2_pokemontypes: {
-            pokemon_v2_type: { name: { _regex: $type_one } }
-          }
-        }
-        {
-          pokemon_v2_pokemontypes: {
-            pokemon_v2_type: { name: { _regex: $type_two } }
-          }
-        }
-      ]
-    }
-  ) {
-    name
-    pokemon_v2_pokemonsprites {
-      sprites
-    }
-    pokemon_v2_pokemontypes {
-      pokemon_v2_type {
+    ) {
         name
-      }
+        pokemon_v2_pokemonsprites {
+            sprites
+        }
+        pokemon_v2_pokemontypes {
+            pokemon_v2_type {
+                name
+            }
+        }
+        pokemon_v2_pokemonabilities {
+            pokemon_v2_ability {
+                name
+            }
+            is_hidden
+        }
     }
-    pokemon_v2_pokemonabilities {
-      pokemon_v2_ability {
-        name
-      }
-      is_hidden
-    }
-  }
 }
 
 query Filters {
-  pokemon_v2_move {
-    name
-  }
-  pokemon_v2_ability {
-    name
-    pokemon_v2_abilityflavortexts(
-      limit: 1
-      where: { language_id: { _eq: 9 } }
-    ) {
-      flavor_text
+    pokemon_v2_move {
+        name
     }
-  }
-  pokemon_v2_type {
-    name
-  }
+    pokemon_v2_ability {
+        name
+        pokemon_v2_abilityflavortexts(
+            limit: 1
+            where: { language_id: { _eq: 9 } }
+        ) {
+            flavor_text
+        }
+    }
+    pokemon_v2_type {
+        name
+    }
 }

@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+use crate::document::Script;
 use crate::document::Stylesheet;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::Level;
@@ -72,6 +73,8 @@ fn main() {
     dioxus::LaunchBuilder::new().launch(|| {
         rsx! {
             Stylesheet { href: asset!("./public/tailwind.css") }
+            Script { src: "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js" }
+            Script { src: "https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js" }
             google_analytics::GoogleAnalytics { config: "G-HJKW1YL1C9" }
             Router::<Route> {}
         }
