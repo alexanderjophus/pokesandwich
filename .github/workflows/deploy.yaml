@@ -15,12 +15,18 @@ jobs:
           toolchain: stable
           override: true
           target: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+          cache-on-failure: "true"
+      - uses: cargo-bins/cargo-binstall@main
       - name: Install CLI
-        run: cargo install dioxus-cli --locked
+        run: cargo binstall dioxus-cli -y --force --version 0.6
       - uses: actions/checkout@v2
       - name: Build
-        run: dx build --release
+        run: dx build --platform web --release
+      - name: Copy output
+        run: cp -r target/dx/pokedex/release/web/public site
       - name: copy index.html
         run: cp site/index.html site/404.html
       - name: Deploy 🚀

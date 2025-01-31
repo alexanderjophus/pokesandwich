@@ -2,7 +2,6 @@ use charming::component::{RadarCoordinate, Title};
 use charming::series::Radar;
 use charming::{Chart, WasmRenderer};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::info;
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
