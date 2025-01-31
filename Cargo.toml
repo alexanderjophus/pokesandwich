@@ -3,20 +3,29 @@ name = "pokedex"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 reqwest = { version = "0.11.4", features = ["blocking", "json"] }
-dioxus = "0.4.0"
-dioxus-web = "0.4.0"
+dioxus = { version = "0.6.2", features = ["web"] }
+dioxus-sdk = { version = "0.6.0", features = ["storage"] }
 phf = { version = "0.11", features = ["macros"] }
-gloo-storage = "0.3.0"
-dioxus_storage = "0.0.3"
-dioxus-router = "0.4.1"
-dioxus-logger = "0.4.1"
+dioxus-router = "0.6.2"
+dioxus-logger = "0.6.2"
 log = "0.4.20"
 graphql_client = "0.13.0"
-dioxus-signals = "0.4.3"
-dioxus-free-icons = { version = "0.7.0", features = ["font-awesome-regular"] }
+dioxus-signals = "0.6.2"
+dioxus-free-icons = { version = "0.9.0", features = ["font-awesome-regular"] }
+charming = { version = "0.4.0", features = ["wasm"] }
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

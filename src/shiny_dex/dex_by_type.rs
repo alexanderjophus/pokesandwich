@@ -1,103 +1,119 @@
-use dioxus::prelude::*;
-use dioxus_storage::use_persistent;
 use std::collections::HashSet;
 
 use crate::shiny_dex::focus::{dex_by_type, load_focus, perform_gql_query, Focus, FocusState};
 use crate::shiny_dex::TYPES_INFO;
+use dioxus::prelude::*;
+use dioxus_logger::tracing::info;
+use dioxus_sdk::storage::use_persistent;
 
 #[component]
-pub fn DexByType(cx: Scope, dex: String, pokemon_type: String) -> Element {
-    use_shared_state_provider(cx, || FocusState::Unset);
+pub fn DexByType(dex: Signal<String>, pokemon_type: Signal<String>) -> Element {
+    let focus_state = use_signal(|| FocusState::Unset);
 
-    cx.render(rsx! {
+    rsx! {
         div { display: "flex", flex_direction: "row",
             div { overflow: "auto", max_height: "100vh", margin: "10px", width: "20%",
-                Search { dex: dex.clone(), pokemon_type: pokemon_type.clone() }
+                Search { focus_state: focus_state, dex: dex.clone(), pokemon_type: pokemon_type.clone() }
             }
-            div { margin: "10px", width: "80%", Focus {} }
+            div { margin: "10px", width: "80%", Focus { focus_state } }
         }
-    })
+    }
 }
 
 #[derive(PartialEq, Props, Clone)]
 struct SearchProps {
-    dex: String,
-    pokemon_type: String,
+    focus_state: Signal<FocusState>,
+    dex: Signal<String>,
+    pokemon_type: Signal<String>,
 }
 
-fn Search(cx: Scope<SearchProps>) -> Element {
-    let pokemon = use_future(cx, &cx.props.clone(), |_| {
+fn Search(props: SearchProps) -> Element {
+    let faves = use_persistent("faves", || HashSet::<String>::new());
+    let pokemon = use_resource(move || async move {
         let variables = dex_by_type::Variables {
-            dex: cx.props.dex.to_string(),
-            pokemon_type: cx.props.pokemon_type.to_string(),
+            dex: props.dex.to_string().clone(),
+            pokemon_type: props.pokemon_type.to_string().clone(),
         };
-        perform_gql_query(variables)
+        perform_gql_query(variables).await
     });
 
-    match pokemon.value() {
-        Some(Ok(pokemon)) => RenderDex(cx, pokemon.clone()),
-        Some(Err(err)) => render! {"An error occurred while loading {err}"},
-        _ => render! {"Loading items"},
+    match &*pokemon.read_unchecked() {
+        Some(Ok(pokemon)) => {
+            rsx! { RenderDex { faves: faves,  focus_state: props.focus_state, pokemon: pokemon.clone(), pokemon_type: props.pokemon_type.clone() } }
+        }
+        Some(Err(err)) => rsx! {"An error occurred while loading {err}"},
+        _ => rsx! {"Loading items"},
     }
 }
 
-fn RenderDex(
-    cx: Scope<SearchProps>,
-    pokemon: Vec<dex_by_type::DexByTypePokemonV2Pokemon>,
-) -> Element {
-    cx.render(rsx! {
-        div { overflow: "hidden", background_color: TYPES_INFO.get(cx.props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{cx.props.pokemon_type.clone()}.svg" } }
-        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { pokemon: pokemon } }
-    })
+#[derive(PartialEq, Props, Clone)]
+struct RenderDexProps {
+    faves: Signal<HashSet<String>>,
+    focus_state: Signal<FocusState>,
+    pokemon: ReadOnlySignal<Vec<dex_by_type::DexByTypePokemonV2Pokemon>>,
+    pokemon_type: String,
 }
 
 #[component]
-fn DexTable(cx: Scope, pokemon: Vec<dex_by_type::DexByTypePokemonV2Pokemon>) -> Element {
-    cx.render(rsx! {
+fn RenderDex(props: RenderDexProps) -> Element {
+    rsx! {
+        div { overflow: "hidden", background_color: TYPES_INFO.get(props.pokemon_type.as_str()).unwrap().color, border_radius: "50%", width: "100px", height: "100px", img { src: "/icons/{props.pokemon_type.clone()}.svg" } }
+        div { overflow: "auto", display: "flex", flex_direction: "column", width: "100%", DexTable { faves: props.faves,  focus_state: props.focus_state, pokemon: props.pokemon } }
+    }
+}
+
+#[component]
+fn DexTable(
+    faves: Signal<HashSet<String>>,
+    focus_state: Signal<FocusState>,
+    pokemon: ReadOnlySignal<Vec<dex_by_type::DexByTypePokemonV2Pokemon>>,
+) -> Element {
+    rsx! {
         table { border_collapse: "collapse",
             thead {
                 tr { th { "Pokemon Name" } }
             }
             tbody {
-                for entry in pokemon.iter() {
-                    DexRow { entry: entry.clone() }
+                for entry in pokemon() {
+                    DexRow { faves: faves, focus_state, entry: entry.clone() }
                 }
             }
         }
-    })
+    }
 }
 
 #[component]
-fn DexRow(cx: Scope, entry: dex_by_type::DexByTypePokemonV2Pokemon) -> Element {
-    let fav = use_persistent(cx, "faves", || HashSet::new());
-    let focus_state = use_shared_state::<FocusState>(cx).unwrap();
-
-    cx.render(rsx! {
+fn DexRow(
+    faves: Signal<HashSet<String>>,
+    focus_state: Signal<FocusState>,
+    entry: ReadOnlySignal<dex_by_type::DexByTypePokemonV2Pokemon>,
+) -> Element {
+    rsx! {
         tr { class: "border-2 hover:bg-gray-100 hover:ring-2 hover:ring-pink-500 hover:ring-inset",
             td {
                 div { display: "flex", flex_direction: "row",
                     div {
                         width: "80%",
-                        onclick: move |_event| { load_focus(focus_state.clone(), entry.clone()) },
-                        "{entry.name}"
+                        onclick: move |_| { load_focus(focus_state, entry) },
+                        "{entry().name}"
                     }
                     div {
                         width: "20%",
-                        onclick: move |_| {
-                            if fav.get().contains(&entry.name) {
-                                fav.modify(|faves| {
-                                    faves.remove(&entry.name);
-                                });
+                        onclick: move |_|  {
+                            let name = &entry().name;
+                            info!("clicked on {name}");
+                            if faves().contains(&entry().name) {
+                                info!("removing {name} from faves");
+                                faves().remove(&entry().name);
                             } else {
-                                fav.modify(|faves| {
-                                    faves.insert(entry.name.clone());
-                                });
+                                info!("adding {name} to faves");
+                                faves().insert(entry().name);
                             }
                         },
-                        i { class: "fa fa-heart", color: if fav.get().contains(&entry.name) { "red" } else { "grey" } }
+                        i { class: "fa fa-heart", color: if faves().contains(&entry().name) { "red" } else { "grey" }},
                     }
                 }
             }
         }
-    })
+    }
 }

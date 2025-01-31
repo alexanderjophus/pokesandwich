@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_storage::use_persistent;
+use dioxus_sdk::storage::use_persistent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -7,42 +7,42 @@ use crate::footer;
 use crate::BASE_REST_API_URL;
 
 #[component]
-pub fn Favourites(cx: Scope) -> Element {
-    let faves = use_persistent(cx, "faves", || HashSet::<String>::new());
+pub fn Favourites() -> Element {
+    let faves = use_persistent("faves", || HashSet::<String>::new());
 
-    cx.render(rsx! {
+    rsx! {
         h1 { "Favourites" }
-        for fav in &faves.get() {
-            FavouritePokemon { pokemon_name: fav.clone() }
+        for fav in faves() {
+            FavouritePokemon { pokemon_name: fav }
         }
         footer::Footer {}
-    })
-}
-
-#[component]
-fn FavouritePokemon(cx: Scope, pokemon_name: String) -> Element {
-    let pokemon_fut = use_future(cx, (), |_| get_pokemon(pokemon_name.to_string()));
-
-    match pokemon_fut.value() {
-        Some(Ok(pokemon)) => render! { RenderPokemon { pokemon: pokemon.clone() } },
-        Some(Err(err)) => render! {"An error occurred while loading {err}"},
-        _ => render! {"Loading items"},
     }
 }
 
 #[component]
-fn RenderPokemon(cx: Scope, pokemon: Pokemon) -> Element {
+fn FavouritePokemon(pokemon_name: ReadOnlySignal<String>) -> Element {
+    let pokemon_res =
+        use_resource(move || async move { get_pokemon(pokemon_name()).await.unwrap() });
+
+    match &*pokemon_res.read_unchecked() {
+        Some(pokemon) => rsx! { RenderPokemon { pokemon: pokemon.clone() } },
+        _ => rsx! {"Loading items"},
+    }
+}
+
+#[component]
+fn RenderPokemon(pokemon: Pokemon) -> Element {
     let pokemon_name = pokemon.name.clone();
     let default_image = pokemon.sprites.other.official_artwork.front_default.clone();
     let shiny_image = pokemon.sprites.other.official_artwork.front_shiny.clone();
 
-    cx.render(rsx! {
-        h1 { pokemon_name }
+    rsx! {
+        h1 { "{pokemon_name}" }
         div { display: "flex", flex_direction: "row",
             img { src: "{default_image}", width: "100%" }
             img { src: "{shiny_image.clone().unwrap_or_default()}", width: "100%" }
         }
-    })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -14,11 +14,11 @@ pub static TYPES: [&str; 18] = [
 ];
 
 #[component]
-pub fn ShinyDex(cx: Scope) -> Element {
-    let dex = use_state(cx, || DEFAULT_DEX.to_string());
-    let pokemon_type = use_state(cx, || DEFAULT_TYPE.to_string());
+pub fn ShinyDex() -> Element {
+    let mut dex = use_signal(|| DEFAULT_DEX.to_string());
+    let mut pokemon_type = use_signal(|| DEFAULT_TYPE.to_string());
 
-    cx.render(rsx! {
+    rsx! {
         div { display: "flex", flex_direction: "row", justify_content: "space-between",
             h1 { "Welcome to the shiny hunters pokédex" }
             h1 { a { href: "/shiny/favourites", "View your favourites" } }
@@ -28,7 +28,7 @@ pub fn ShinyDex(cx: Scope) -> Element {
                 class: "bg-white font-bold py-2 px-4 rounded",
                 width: "20%",
                 oninput: move |event| {
-                    dex.set(event.data.value.clone());
+                    dex.set(event.data.value().clone());
                 },
                 for dex in DEXES.iter() {
                     option { value: *dex, "{dex}" }
@@ -38,16 +38,14 @@ pub fn ShinyDex(cx: Scope) -> Element {
                 class: "bg-white font-bold py-2 px-4 rounded",
                 width: "20%",
                 oninput: move |event| {
-                    pokemon_type.set(event.data.value.clone());
+                    pokemon_type.set(event.data.value().clone());
                 },
                 for key in TYPES.iter() {
                     option { value: *key, "{key}" }
                 }
             }
         }
-        render!(
-            DexByType { dex: dex.to_string(), pokemon_type: pokemon_type.to_string() }
-        ),
+        DexByType { dex: dex, pokemon_type: pokemon_type }
         footer::Footer {}
-    })
+    }
 }
