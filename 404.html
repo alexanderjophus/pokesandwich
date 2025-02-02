@@ -5,14 +5,14 @@
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="UTF-8" />
-  <link rel="preload" as="script" href="/./assets/pokedex-c20ec13a1e8c8da3.js" crossorigin><link rel="preload" as="fetch" type="application/wasm" href="/./assets/pokedex_bg-f933f3d72e07c7d5.wasm" crossorigin></head>
+  <link rel="preload" as="script" href="/./assets/pokedex-2aa31d2c51637072.js" crossorigin><link rel="preload" as="fetch" type="application/wasm" href="/./assets/pokedex_bg-6115b83722e76a75.wasm" crossorigin></head>
   <body>
     <div id="main"></div>
   <script>
             // We can't use a module script here because we need to start the script immediately when streaming
-            import("/./assets/pokedex-c20ec13a1e8c8da3.js").then(
+            import("/./assets/pokedex-2aa31d2c51637072.js").then(
                 ({ default: init }) => {
-                init("/./assets/pokedex_bg-f933f3d72e07c7d5.wasm").then((wasm) => {
+                init("/./assets/pokedex_bg-6115b83722e76a75.wasm").then((wasm) => {
                     if (wasm.__wbindgen_start == undefined) {
                     wasm.main();
                     }
