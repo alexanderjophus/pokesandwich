@@ -55,7 +55,7 @@ fn FocusDetail(focus_data: ReadOnlySignal<FocusData>) -> Element {
         focus_data.read().name
     );
 
-    let renderer = use_signal(|| WasmRenderer::new(600, 400));
+    let renderer = use_signal(|| WasmRenderer::new(320, 320));
 
     use_effect(move || {
         let chart = Chart::new()
